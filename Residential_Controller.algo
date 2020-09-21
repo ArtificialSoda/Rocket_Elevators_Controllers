@@ -1,0 +1,159 @@
+/*
+
+1 column,
+2 elevators,
+10 floors
+
+Control:
+- column
+    ~ number elevators
+    
+- elevators 
+    ~ max capacity
+    ~ number floors
+    ~ current floor
+    ~ direction
+    ~ isIdle
+
+- callbuttons (outside)
+    ~ isToggled
+    ~ which floor 
+
+- doors
+    ~ isOpen/isClosed
+
+- floorbuttons (inside)
+    ~ isToggled
+    ~ which floor 
+
+*/
+
+1) Initiate 
+- Elevators
+    isDown = false
+    currentFloor = 1
+    status = idle
+    door = closed
+    floorRequests = []
+- CallButtons
+    up, down = false
+    currentFloor
+
+    request = {currentFloor, direction}
+    1) check the difference in floors between the current floor and the floor of the elevator + do average of already-existing requests
+    2) send request to elevator.floorRequests (the elevator closest)
+    3) elevators requests will be granted FIFO, except if a new subsequent request doesnt change the original direction
+
+
+- FloorButtons
+
+
+================================================================
+                        ~CHECKING WEIGHT CAPACITY~
+================================================================
+SEQUENCE WeightSensor USING elevator
+    SET maxWeightKG TO ((ANY REALISTIC VALUE))
+
+    WHILE elevator.isDown IS false
+        CALCULATE currentWeightKG
+        IF currentWeightKG IS GREATER THAN maxWeightKG THEN
+            DISPLAY "ALERT: MAXIMUM WEIGHT CAPACITY SURPASSED"
+                    "PLEASE REDUCE THE WEIGHT BY LEAVING"
+            SET elevator.door TO "open"
+        ENDIF
+    ENDWHILE
+ENDSEQUENCE
+================================================================
+                    ~INITIALIZING THE ELEVATORS SYSTEM~
+================================================================
+SEQUENCE InitElevators USING columns AND elevators
+    FOR EACH column IN columns 
+        FOR EACH elevator IN elevators
+            SET isDown TO false 
+            SET status TO "idle"
+            SET door TO "closed"
+            SET direction TO null
+            SET currentFloor TO 1
+            SET floorRequests TO []
+            SET nextFloor TO null
+            CALL WeightSensor USING elevator
+        ENDFOR 
+    ENDFOR
+ENDSEQUENCE
+
+SEQUENCE InitCallButtons USING callButtons 
+    FOR EACH callButton IN callButtons
+        SET isUpToggled, isDownToggled TO false
+        GET currentFloor
+    ENDFOR
+ENDSEQUENCE 
+================================================================
+                        ~CALLING AN ELEVATOR~
+================================================================
+SEQUENCE CallElevator USING currentFloor AND elevators
+    INIT request 
+        {
+            calledFloor
+            direction
+        }
+    SET request.calledFloor TO currentFloor
+
+    IF isUpToggled IS true AND isDownToggled IS true THEN
+        DISPLAY "TRY PRESSING AGAIN - PICK ONLY ONE DIRECTION"
+        SET isUpToggled, isDownToggled TO false
+    ELSE IF isUpToggled IS true THEN
+        SET request.direction TO "up"
+    ELSE IF isDownToggled IS true THEN
+        SET request.direction TO "down"
+    ENDIF
+
+
+
+    FOR EACH elevator in elevators
+        IF elevator.status IS "active" THEN
+            SET floorDiff TO elevator.floor - currentFloor
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SET number_of_colummns TO 1
+SET number_of_elevators_per_column TO 2
+SET number_of_floors TO 10
+SET current_floor TO 
+
+
+// PressCallButton
+IF CallButton IS pressed THEN
+    CALL call_elevator()
+
+
+// CallElevator
+SEQUENCE call_elevator USING current_floor AND desired_direction
+    
+
+
