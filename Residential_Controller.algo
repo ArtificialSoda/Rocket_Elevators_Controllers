@@ -1,33 +1,3 @@
-/*
-
-1 column,
-2 elevators,
-10 floors
-
-Control:
-- column
-    ~ number elevators
-    
-- elevators 
-    ~ max capacity
-    ~ number floors
-    ~ current floor
-    ~ direction
-    ~ isIdle
-
-- callbuttons (outside)
-    ~ isToggled
-    ~ which floor 
-
-- doors
-    ~ isOpen/isClosed
-
-- floorbuttons (inside)
-    ~ isToggled
-    ~ which floor 
-
-*/
-
 1) Initiate 
 - Elevators
     isDown = false
@@ -36,46 +6,21 @@ Control:
     door = closed
     floorRequests = []
 - CallButtons
-    up, down = false
-    currentFloor
-
-    request = {currentFloor, direction}
-    1) check the difference in floors between the current floor and the floor of the elevator + do average of already-existing requests
-    2) send request to elevator.floorRequests (the elevator closest)
-    3) elevators requests will be granted FIFO, except if a new subsequent request doesnt change the original direction
-
-
-- FloorButtons
-
-
-================================================================
-                        ~CHECKING WEIGHT CAPACITY~
-================================================================
-SEQUENCE WeightSensor USING elevator
-    SET maxWeightKG TO ((ANY REALISTIC VALUE))
-
-    WHILE elevator.isDown IS false
-        CALCULATE currentWeightKG
-        IF currentWeightKG IS GREATER THAN maxWeightKG THEN
-            DISPLAY "ALERT: MAXIMUM WEIGHT CAPACITY SURPASSED"
-                    "PLEASE REDUCE THE WEIGHT BY LEAVING"
-            SET elevator.door TO "open"
-        ENDIF
-    ENDWHILE
-ENDSEQUENCE
+$$$ Author: Fabien H. Dimitrov $$$
 ================================================================
                     ~INITIALIZING THE ELEVATORS SYSTEM~
 ================================================================
 SEQUENCE InitElevators USING columns AND elevators
     FOR EACH column IN columns 
+        SET numFloors TO 10
         FOR EACH elevator IN elevators
             SET isDown TO false 
             SET status TO "idle"
             SET door TO "closed"
             SET direction TO null
-            SET currentFloor TO 1
-            SET floorRequests TO []
             SET nextFloor TO null
+            SET currentFloor TO 1
+            INIT List requestsQueue
             CALL WeightSensor USING elevator
         ENDFOR 
     ENDFOR
@@ -83,38 +28,157 @@ ENDSEQUENCE
 
 SEQUENCE InitCallButtons USING callButtons 
     FOR EACH callButton IN callButtons
-        SET isUpToggled, isDownToggled TO false
         GET currentFloor
+
+        IF (currentFloor IS EQUAL TO numFloors) THEN
+            SET isDownToggled TO false
+        ELSE IF (currentFloor IS EQUAL TO 1) THEN   
+            SET isUpToggled TO false
+        ELSE
+            SET isUpToggled, isDownToggled TO false
+        ENDIF
+
     ENDFOR
 ENDSEQUENCE 
 ================================================================
-                        ~CALLING AN ELEVATOR~
+                ~CALLING AN ELEVATOR VIA BUTTON~
 ================================================================
-SEQUENCE CallElevator USING currentFloor AND elevators
+SEQUENCE CallElevator USING currentFloor
     INIT request 
         {
-            calledFloor
+            currentFloor
             direction
         }
-    SET request.calledFloor TO currentFloor
 
-    IF isUpToggled IS true AND isDownToggled IS true THEN
+    SET request.currentFloor TO currentFloor
+    IF (isUpToggled IS true) AND (isDownToggled IS true) THEN
         DISPLAY "TRY PRESSING AGAIN - PICK ONLY ONE DIRECTION"
         SET isUpToggled, isDownToggled TO false
     ELSE IF isUpToggled IS true THEN
-        SET request.direction TO "up"
+        SET request.direction TO "UP"
     ELSE IF isDownToggled IS true THEN
-        SET request.direction TO "down"
+        SET request.direction TO "DOWN"
     ENDIF
 
+    SET chosenElevator TO CALL ChooseElevator USING request and elevators
+    IF (chosenElevator is null) THEN
+        DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
+    ELSE 
+        ADD request TO END of chosenElevator.requestsQueue
+    ENDIF
+ENDSEQUENCE
+================================================================
+            ~CHOOSE WHICH ELEVATOR BASED ON SCORE~
+================================================================
+SEQUENCE ChooseElevator USING request AND elevators
 
-
+    INIT List elevatorScores OF size elevators
+    FOR EACH elevatorScore in elevatorScores
+        SET elevatorScore TO 0
+    ENDFOR
+    
     FOR EACH elevator in elevators
-        IF elevator.status IS "active" THEN
-            SET floorDiff TO elevator.floor - currentFloor
+        SET score TO 0
+        SET floorDifference TO elevator.currentFloor - request.currentFloor
+
+        IF (elevator.isDown IS true) THEN
+            SET score TO -1
+            ADD score TO elevatorScores
+            SKIP score calculation and go TO next elevator 
+        ENDIF
+
+        'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR'
+        CASE (absolute value OF floorDifference) OF 
+            0: INCREMENT score WITH 900
+            1: INCREMENT score WITH 800
+            2: INCREMENT score WITH 700
+            3: INCREMENT score WITH 600
+            4: INCREMENT score WITH 500
+            5: INCREMENT score WITH 400
+            6: INCREMENT score WITH 300
+            7: INCREMENT score WITH 200
+            8: INCREMENT score WITH 100
+            9: INCREMENT score WITH 0
+        ENDCASE
+
+        'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
+        IF (elevator.requestsQueue IS LESS THAN OR EQUAL TO 3) THEN
+            INCREMENT score WITH 500
+        ELSE IF (elevator.requestsQueue IS LESS THAN OR EQUAL TO 7) THEN
+            INCREMENT score WITH 250
+        ENDIF
+
+        'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
+        IF (elevator.status IS "active") THEN
+            IF (floorDifference IS GREATER THAN OR EQUAL TO 0) AND (request.direction IS "DOWN") AND (elevator.direction IS "DOWN") THEN
+                INCREMENT score WITH 10000
+            ELSE IF (floorDifference IS LESS THAN OR EQUAL TO 0) AND (request.direction IS "UP") AND (elevator.direction IS "UP") THEN
+                INCREMENT score WITH 10000
+            ENDIF 
+        ENDIF
+
+        ADD score TO elevatorScores
+    ENDFOR
+
+    SET highestScore TO -1
+    FOR EACH score in elevatorScores
+        IF (score IS GREATER THAN highestScore) THEN
+            SET highestScore TO score 
+        ENDIF
+    ENDFOR
+
+    SET chosenElevator TO null 
+    IF (highestScore IS NOT EQUAL TO -1) THEN
+        SET chosenElevator TO elevator WITH highestScore 
+    ENDIF
+    RETURN chosenElevator 
+ENDSEQUENCE 
 
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+INIT elevators 
+INIT columns 
+{
+    SET numElevators TO 2
+    FOR elevator = 1 TO numElevators
+        ADD elevator {
+            // properties of an elevator
+            isDown
+            door
+            status
+            ...
+        } TO elevators
+    ENDFOR   
+}
+
+
+
+
+
+
+
+
+
+
+   
 
 
 
@@ -139,21 +203,6 @@ SEQUENCE CallElevator USING currentFloor AND elevators
 
 
 
-
-
-SET number_of_colummns TO 1
-SET number_of_elevators_per_column TO 2
-SET number_of_floors TO 10
-SET current_floor TO 
-
-
-// PressCallButton
-IF CallButton IS pressed THEN
-    CALL call_elevator()
-
-
-// CallElevator
-SEQUENCE call_elevator USING current_floor AND desired_direction
     
 
 
