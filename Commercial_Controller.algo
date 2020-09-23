@@ -1,0 +1,8 @@
+Classic:
+
+
+Modern:
+    A call button (+ all the floor buttons) where you enter the building where you choose which floor you want to go, then algorithm tells you which column and which elevator to pick
+    No call button on each elevator/column
+    No floor buttons inside elevators (so you either go to your initial destination or back to floor 1)
+

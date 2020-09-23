@@ -9,19 +9,49 @@ SET originFloor TO 1
 SET numElevatorsPerColumn TO 2
 SET numFloors TO 10
 SET columnsList TO empty List
+SET callButtonsList TO empty List
 
-'Instantiate the columns, which then instantiate the elevators and its subfeatures'
+'Instantiate the call buttons of each floor'
+FOR floorNum = 1 TO numFloors
+    SET upButton TO INSTANTIATE CallButton WITH floorNum AND "up"
+    SET downButton TO INSTANTIATE CallButton WITH floorNum AND "down"
+    ADD upButton AND downButton TO callButtonsList
+ENDFOR
+
+'Instantiate the columns, which then instantiate the elevators and its subfunctionalities'
 FOR columnNum = 1 TO numColumns
     SET column TO INSTANTIATE Column WITH columnNum AND "online"
     CALL CreateElevatorList OF column WITH numElevatorPerColumn
     ADD column TO columnsList
 ENDFOR
 
-'Instantiate the call buttons of each floor'
-FOR floorNum = 1 TO numFloors
-    INSTANTIATE CallButton WITH floorNum AND "up"
-    INSTANTIATE CallButton WITH floorNum AND "down"
+'Enable the elevator system for each column that is not under maintenance'
+'Do constant security checks'
+FOR EACH column IN columnsList 
+    WHILE Status OF column IS NOT "offline"
+        
+        'Check for any potential elevator calls'
+        FOR EACH button in callButtonsList
+            IF (sensors detect pressure on button) THEN
+                CALL Press OF button
+            ENDIF
+        ENDFOR
+
+        'Check if elevator is at full capacity'
+        'Move elevators to their destinations'
+        FOR EACH elevator in ElevatorList OF column
+            MONITOR the security and performance OF elevator
+            SET Status OF elevator TO "offline" WHEN problem arises
+            CALL CheckWeight WITH elevator
+            CALL DoRequests OF elevator
+        ENDFOR
+
+        MONITOR the security and performance OF column
+        SET Status OF column TO "offline" WHEN problem arises
+        
+    ENDWHILE
 ENDFOR
+
 ====================================================================================================================================================
 ~OBJECT DEFINITIONS~
 ====================================================================================================================================================
@@ -52,12 +82,98 @@ DEFINE Elevator USING id AND status:
     Door: SET TO INSTANTIATE Door WITH "closed",
     Buttons: SET TO List OF size numFloors OF INSTANTIATE FloorButton
 
+    'Give value to all floor buttons of elevator'
     SEQUENCE InitButtons 
         SET floorNumber TO 1
         FOR EACH button in Buttons
             SET Floor OF button TO floorNumber
             INCREMENT floorNumber WITH 1
         ENDFOR
+    ENDSEQUENCE
+
+    'Make elevator go to origin floor'
+    SEQUENCE GoToOrigin
+        SET NextFloor OF elevator = originFloor
+        WHILE (CurrentFloor OF elevator IS NOT NextFloor OF elevator)
+            DISPLAY CurrentFloor ON screen inside elevator
+            CONTINUE going TOWARDS NextFloor
+        ENDWHILE
+        DISPLAY CurrentFloor ON screen inside elevator
+    ENDSEQUENCE
+
+    'Sort requests for added efficiency'
+    SEQUENCE SortRequestsQueue
+        SET Movement OF elevator TO "active"
+        SET Direction OF elevator TO direction OF 1st request in RequestsQueue
+        
+        IF (Direction OF elevator IS "up") THEN
+            SORT RequestsQueue OF elevator in ASCENDING ORDER
+            FOR EACH request in RequestsQueue
+                IF (floor OF request < CurrentFloor OF elevator ) OR (direction OF request IS NOT Direction OF elevator) THEN
+                    PUT request at the END OF RequestsQueue
+                ENDIF
+            ENDFOR  
+        ENDIF
+
+        IF (Direction OF elevator IS "down") THEN
+            SORT RequestsQueue OF elevator in DESCENDING ORDER
+            FOR EACH request in RequestsQueue
+                IF (floor OF request > CurrentFloor OF elevator) OR (direction OF request IS NOT Direction OF elevator) THEN
+                    PUT request at the END OF RequestsQueue
+                ENDIF
+            ENDFOR  
+        ENDIF
+    ENDSEQUENCE 
+
+    'Complete the requests'
+    SEQUENCE DoRequests
+
+        IF (RequestsQueue OF elevator IS NOT empty) THEN
+
+            'Make sure the queue is sorted before elevator completes any requests'
+            CALL SortRequestsQueue OF elevator 
+
+            'Go to destination (next) floor'
+            SET NextFloor OF elevator = floor OF 1st request in [SORTED] RequestsQueue
+            WHILE (CurrentFloor OF elevator IS NOT NextFloor OF elevator)
+                DISPLAY CurrentFloor ON screen inside elevator
+                CONTINUE going TOWARDS NextFloor
+            ENDWHILE
+
+            'Destination floor is reached'
+            DISPLAY CurrentFloor ON screen inside elevator
+            SET Door OF elevator TO "open"
+            SET isEmittingLight OF ALL CallButton WITH CurrentFloor TO false 
+            REMOVE 1st request in [SORTED] RequestsQueue
+
+            'Check if a floor button inside has been pressed - if yes, form new request'
+            FOR EACH button in Buttons OF elevator 
+                IF (sensors detect pressure on button) THEN
+                    CALL Press OF button
+
+                    'Get what is the direction of the new request'
+                    SET floorDifference = CurrentFloor OF elevator - Floor OF button
+                    IF (floorDifferece > 0) THEN
+                        SET requestDirection TO "down"
+                    ELSE 
+                        SET requestDirection TO "up"
+                    ENDIF
+
+                    'Send new request to the same elevator'
+                    ADD (Floor OF button, requestDirection) TO RequestsQueue OF elevator
+                ENDIF
+            ENDFOR
+            
+            'Automatically close door after certain time'
+            SET Door OF elevator TO "closed" AFTER 5 seconds
+
+        ELSE
+            'Automatically go to origin floor after certain time of inactivity'
+            IF (RequestsQueue OF elevator IS empty MORE THAN 10 minutes) THEN
+                CALL GoToOrigin
+                SET Movement OF elevator TO "idle"
+            ENDIF
+        ENDIF
     ENDSEQUENCE
 ENDDEFINE
 
@@ -76,13 +192,13 @@ ENDDEFINE
 
 'Define an elevator floor button'
 DEFINE FloorButton:
-    Floor: null,
-    isToggled: false,
-    isEmittingLight: false
+    Floor: SET TO null,
+    isToggled: SET TO false,
+    isEmittingLight: SET TO false
 
     SEQUENCE Press 
-        SET isToggled TO true
-        SET isEmittingLight TO true
+        SET isToggled TO true UNTIL Floor is reached
+        SET isEmittingLight TO true UNTIL Floor is reached
     ENDSEQUENCE 
 ENDDEFINE
 
@@ -90,41 +206,42 @@ ENDDEFINE
 DEFINE CallButton USING floor AND direction:
     Floor: floor,
     Direction: direction,
-    isPressed: false,
-    isEmittingLight: false
+    isPressed: SET TO false,
+    isEmittingLight: SET TO false
 
-    SEQUENCE CallElevator
+    SEQUENCE Press
         SET currentFloor TO Floor
         SET direction TO Direction
-        SET isPressed TO true
-        SET isEmittingLight TO true
+        SET isPressed TO true UNTIL elevator shows up
+        SET isEmittingLight TO true UNTIL elevator shows up
 
-        SET columnID TO ID OF Column which contains the elevators that you may use 
+        SET columnID TO ID OF Column which contains the elevators that you want to use 
         SET chosenElevator = CALL ChooseElevator WITH currentFloor AND direction AND columnID
 
         IF (chosenElevator is null) THEN
             DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
         ELSE 
-            ADD currentFloor TO RequestsQueue OF chosenElevator
+            ADD (currentFloor, direction) TO RequestsQueue OF chosenElevator
         ENDIF
     ENDSEQUENCE
 ENDDEFINE
 ====================================================================================================================================================
-~CHOOSE WHICH ELEVATOR BASED ON SCORE SYSTEM~
+~CHOOSE WHICH ELEVATOR SHOULD BE CALLED
 ====================================================================================================================================================
+'With the score system, a request gets send to the elevator with the most points accumulated for maximum efficiency'
 SEQUENCE ChooseElevator USING requestFloor AND requestDirection AND columnID
     SET column TO Column WITH ID OF columnID
     SET elevatorScores TO empty List OF size numElevatorsPerColumn
     
     FOR EACH elevator in ElevatorList OF column
         SET score TO 0
-        SET floorDifference = Floor OF elevator - requestFloor
+        SET floorDifference = CurrentFloor OF elevator - requestFloor
     
         'PREVENTS USE OF ANY ELEVATORS UNDER MAINTENANCE'
         IF (Status OF elevator IS NOT "online") THEN
             SET score TO -1
             ADD score TO elevatorScores
-            SKIP score calculation and go TO NEXT elevator 
+            SKIP score calculation and GO TO NEXT elevator 
         ENDIF
 
         'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
@@ -143,7 +260,7 @@ SEQUENCE ChooseElevator USING requestFloor AND requestDirection AND columnID
 
         'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
         IF (Movement OF elevator IS "active") THEN
-            IF (floorDifference >= 0) AND (requestDirection IS "down") AND (Direction OF elevator IS "DOWN") THEN
+            IF (floorDifference >= 0) AND (requestDirection IS "down") AND (Direction OF elevator IS "down") THEN
                 'Paths are crossed'
                 INCREMENT score WITH 10000
             ELSE IF (floorDifference <= 0) AND (requestDirection IS "up") AND (Direction OF elevator IS "up") THEN
@@ -191,11 +308,20 @@ SEQUENCE ChooseElevator USING requestFloor AND requestDirection AND columnID
         SET chosenElevator = the elevator WITH highestScore 
     ENDIF
     RETURN chosenElevator 
+ENDSEQUENCE
+====================================================================================================================================================
+~CHECK WEIGHT CAPACITY~
+====================================================================================================================================================
+SEQUENCE CheckWeight USING elevator 
+    SET MaxWeightKG TO 555
+    SET CurrentWeightKG TO CALCULATE
+
+    IF (currentWeightKG > maxWeightKG) THEN
+        DISPLAY "ALERT: MAXIMUM WEIGHT CAPACITY SURPASSED, PLEASE LOWER THE WEIGHT" WITH beep sound
+        SET Door OF elevator TO "open"
+        FREEZE elevator
+    ENDIF
 ENDSEQUENCE 
-
-
-
-
 
 
 
