@@ -1,40 +1,108 @@
-$$$ Author: Fabien H. Dimitrov $$$
-================================================================
-                    ~INITIALIZING THE ELEVATORS SYSTEM~
-================================================================
-SEQUENCE InitElevators USING columns AND elevators
-    FOR EACH column IN columns 
-        SET numFloors TO 10
-        FOR EACH elevator IN elevators
-            SET isDown TO false 
-            SET status TO "idle"
-            SET door TO "closed"
-            SET direction TO null
-            SET nextFloor TO null
-            SET currentFloor TO 1
-            INIT List requestsQueue
-            CALL WeightSensor USING elevator
-        ENDFOR 
-    ENDFOR
-ENDSEQUENCE
+'$$$ Author: Fabien H. Dimitrov $$$'
+'$$$ Context: Codeboxx Week 1 (Odyssey) $$$'
+====================================================================================================================================================
+~~~MAIN~~~
+====================================================================================================================================================
+'Globals'
+SET numColumns TO 1
+SET originFloor TO 1
+SET numElevatorsPerColumn TO 2
+SET numFloors TO 10
+SET columnsList TO empty List
 
-SEQUENCE InitCallButtons USING callButtons 
-    FOR EACH callButton IN callButtons
-        GET currentFloor
+'Instantiate the columns, which then instantiate the elevators and its subfeatures'
+FOR columnNum = 1 TO numColumns
+    SET column TO INSTANTIATE Column WITH columnNum AND "online"
+    CALL CreateElevatorList OF column WITH numElevatorPerColumn
+    ADD column TO columnsList
+ENDFOR
 
-        IF (currentFloor IS EQUAL TO numFloors) THEN
-            SET isDownToggled TO false
-        ELSE IF (currentFloor IS EQUAL TO 1) THEN   
-            SET isUpToggled TO false
-        ELSE
-            SET isUpToggled, isDownToggled TO false
-        ENDIF
+'Instantiate the call buttons of each floor'
+FOR floorNum = 1 TO numFloors
+    INSTANTIATE CallButton WITH floorNum 
 
-    ENDFOR
-ENDSEQUENCE 
-================================================================
-                ~CALLING AN ELEVATOR VIA BUTTON~
-================================================================
+
+====================================================================================================================================================
+~OBJECT DEFINITIONS~
+====================================================================================================================================================
+'Define a column'
+DEFINE Column USING id AND status:
+    ID: id,
+    Status: status,
+    ElevatorList: SET TO empty List
+
+    SEQUENCE CreateElevatorList USING numElevators
+        SET elevatorList TO empty List
+        FOR elevatorNum = 1 TO numElevators
+            SET elevator TO INSTANTIATE Elevator WITH elevatorNum AND "online"
+            CALL InitButtons OF elevator 
+            ADD elevator TO elevatorList
+        ENDFOR
+    ENDSEQUENCE
+ENDDEFINE
+
+'Define an elevator'
+DEFINE Elevator USING id AND status:
+    ID: id,
+    Status: status,
+    Movement: SET TO "idle",
+    Direction: SET TO null,
+    CurrentFloor: SET TO originFloor,
+    NextFloor: SET TO null,
+    RequestsQueue: SET TO empty List,
+    Door: SET TO INSTANTIATE Door WITH "closed",
+    Buttons: SET TO List OF size numFloors OF INSTANTIATE FloorButton
+
+    SEQUENCE InitButtons 
+        SET floorNumber = 1
+        FOR EACH button in Buttons
+            SET Floor OF button TO floorNumber
+            INCREMENT floorNumber WITH 1
+        ENDFOR
+    ENDSEQUENCE
+ENDDEFINE
+
+'Define an elevator door'
+DEFINE Door USING status:
+    Status: status
+
+    SEQUENCE OpenDoor
+        SET status OF door TO "opened"
+    ENDSEQUENCE
+
+    SEQUENCE CloseDoor
+        SET status OF door TO "closed"
+    ENDSEQUENCE
+ENDDEFINE
+
+'Define an elevator floor button'
+DEFINE FloorButton:
+    Floor: null,
+    isToggled: false,
+    isEmittingLight: false
+
+    SEQUENCE Press 
+        SET isToggled TO true
+        SET isEmittingLight TO true
+    ENDSEQUENCE 
+ENDDEFINE
+
+'Define an elevator call button'
+DEFINE CallButton USING floor:
+    Floor: floor
+
+    IF (Floor IS last floor of building) THEN
+        isDownToggled: SET TO false 
+    ELSE IF (Floor IS first floor of building) THEN
+        isUpToggled: SET TO false
+    ELSE
+        isDownToggled: SET TO false,
+        isUpToggled: SET TO false
+    ENDIF
+ENDDEFINE
+====================================================================================================================================================
+~FUNCTION: CALLING AN ELEVATOR VIA BUTTON~
+====================================================================================================================================================
 SEQUENCE CallElevator USING currentFloor
     INIT request 
         {
@@ -63,7 +131,6 @@ ENDSEQUENCE
             ~CHOOSE WHICH ELEVATOR BASED ON SCORE~
 ================================================================
 SEQUENCE ChooseElevator USING request AND elevators
-
     INIT List elevatorScores OF size elevators
     FOR EACH elevatorScore in elevatorScores
         SET elevatorScore TO 0
@@ -72,14 +139,14 @@ SEQUENCE ChooseElevator USING request AND elevators
     FOR EACH elevator in elevators
         SET score TO 0
         SET floorDifference TO elevator.currentFloor - request.currentFloor
-
+        
         IF (elevator.isDown IS true) THEN
             SET score TO -1
             ADD score TO elevatorScores
             SKIP score calculation and go TO next elevator 
         ENDIF
 
-        'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR'
+        'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
         CASE (absolute value OF floorDifference) OF 
             0: INCREMENT score WITH 900
             1: INCREMENT score WITH 800
@@ -93,6 +160,28 @@ SEQUENCE ChooseElevator USING request AND elevators
             9: INCREMENT score WITH 0
         ENDCASE
 
+        'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
+        IF (elevator.status IS "active") THEN
+            IF (floorDifference IS GREATER THAN OR EQUAL TO 0) AND (request.direction IS "DOWN") AND (elevator.direction IS "DOWN") THEN
+                INCREMENT score WITH 10000
+            ELSE IF (floorDifference IS LESS THAN OR EQUAL TO 0) AND (request.direction IS "UP") AND (elevator.direction IS "UP") THEN
+                INCREMENT score WITH 10000
+            ELSE
+                SET score TO 0
+                SET nextFloorDifference TO elevator.nextFloor - request.currentFloor
+                CASE (absolute value OF nextFloorDifference) OF 
+                    0: INCREMENT score WITH 90
+                    1: INCREMENT score WITH 80
+                    2: INCREMENT score WITH 70
+                    3: INCREMENT score WITH 60
+                    4: INCREMENT score WITH 50
+                    5: INCREMENT score WITH 40
+                    6: INCREMENT score WITH 30
+                    7: INCREMENT score WITH 20
+                    8: INCREMENT score WITH 10
+                    9: INCREMENT score WITH 0
+                ENDCASE
+
         'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
         IF (elevator.requestsQueue IS LESS THAN OR EQUAL TO 3) THEN
             INCREMENT score WITH 500
@@ -100,14 +189,6 @@ SEQUENCE ChooseElevator USING request AND elevators
             INCREMENT score WITH 250
         ENDIF
 
-        'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
-        IF (elevator.status IS "active") THEN
-            IF (floorDifference IS GREATER THAN OR EQUAL TO 0) AND (request.direction IS "DOWN") AND (elevator.direction IS "DOWN") THEN
-                INCREMENT score WITH 10000
-            ELSE IF (floorDifference IS LESS THAN OR EQUAL TO 0) AND (request.direction IS "UP") AND (elevator.direction IS "UP") THEN
-                INCREMENT score WITH 10000
-            ENDIF 
-        ENDIF
 
         ADD score TO elevatorScores
     ENDFOR
