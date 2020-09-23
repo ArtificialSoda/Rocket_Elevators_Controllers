@@ -19,9 +19,9 @@ ENDFOR
 
 'Instantiate the call buttons of each floor'
 FOR floorNum = 1 TO numFloors
-    INSTANTIATE CallButton WITH floorNum 
-
-
+    INSTANTIATE CallButton WITH floorNum AND "up"
+    INSTANTIATE CallButton WITH floorNum AND "down"
+ENDFOR
 ====================================================================================================================================================
 ~OBJECT DEFINITIONS~
 ====================================================================================================================================================
@@ -32,11 +32,10 @@ DEFINE Column USING id AND status:
     ElevatorList: SET TO empty List
 
     SEQUENCE CreateElevatorList USING numElevators
-        SET elevatorList TO empty List
         FOR elevatorNum = 1 TO numElevators
             SET elevator TO INSTANTIATE Elevator WITH elevatorNum AND "online"
             CALL InitButtons OF elevator 
-            ADD elevator TO elevatorList
+            ADD elevator TO ElevatorList
         ENDFOR
     ENDSEQUENCE
 ENDDEFINE
@@ -54,7 +53,7 @@ DEFINE Elevator USING id AND status:
     Buttons: SET TO List OF size numFloors OF INSTANTIATE FloorButton
 
     SEQUENCE InitButtons 
-        SET floorNumber = 1
+        SET floorNumber TO 1
         FOR EACH button in Buttons
             SET Floor OF button TO floorNumber
             INCREMENT floorNumber WITH 1
@@ -88,62 +87,44 @@ DEFINE FloorButton:
 ENDDEFINE
 
 'Define an elevator call button'
-DEFINE CallButton USING floor:
-    Floor: floor
+DEFINE CallButton USING floor AND direction:
+    Floor: floor,
+    Direction: direction,
+    isPressed: false,
+    isEmittingLight: false
 
-    IF (Floor IS last floor of building) THEN
-        isDownToggled: SET TO false 
-    ELSE IF (Floor IS first floor of building) THEN
-        isUpToggled: SET TO false
-    ELSE
-        isDownToggled: SET TO false,
-        isUpToggled: SET TO false
-    ENDIF
+    SEQUENCE CallElevator
+        SET currentFloor TO Floor
+        SET direction TO Direction
+        SET isPressed TO true
+        SET isEmittingLight TO true
+
+        SET columnID TO ID OF Column which contains the elevators that you may use 
+        SET chosenElevator = CALL ChooseElevator WITH currentFloor AND direction AND columnID
+
+        IF (chosenElevator is null) THEN
+            DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
+        ELSE 
+            ADD currentFloor TO RequestsQueue OF chosenElevator
+        ENDIF
+    ENDSEQUENCE
 ENDDEFINE
 ====================================================================================================================================================
-~FUNCTION: CALLING AN ELEVATOR VIA BUTTON~
+~CHOOSE WHICH ELEVATOR BASED ON SCORE SYSTEM~
 ====================================================================================================================================================
-SEQUENCE CallElevator USING currentFloor
-    INIT request 
-        {
-            currentFloor
-            direction
-        }
-
-    SET request.currentFloor TO currentFloor
-    IF (isUpToggled IS true) AND (isDownToggled IS true) THEN
-        DISPLAY "TRY PRESSING AGAIN - PICK ONLY ONE DIRECTION"
-        SET isUpToggled, isDownToggled TO false
-    ELSE IF isUpToggled IS true THEN
-        SET request.direction TO "UP"
-    ELSE IF isDownToggled IS true THEN
-        SET request.direction TO "DOWN"
-    ENDIF
-
-    SET chosenElevator TO CALL ChooseElevator USING request and elevators
-    IF (chosenElevator is null) THEN
-        DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
-    ELSE 
-        ADD request TO END of chosenElevator.requestsQueue
-    ENDIF
-ENDSEQUENCE
-================================================================
-            ~CHOOSE WHICH ELEVATOR BASED ON SCORE~
-================================================================
-SEQUENCE ChooseElevator USING request AND elevators
-    INIT List elevatorScores OF size elevators
-    FOR EACH elevatorScore in elevatorScores
-        SET elevatorScore TO 0
-    ENDFOR
+SEQUENCE ChooseElevator USING requestFloor AND requestDirection AND columnID
+    SET column TO Column WITH ID OF columnID
+    SET elevatorScores TO empty List OF size numElevatorsPerColumn
     
-    FOR EACH elevator in elevators
+    FOR EACH elevator in ElevatorList OF column
         SET score TO 0
-        SET floorDifference TO elevator.currentFloor - request.currentFloor
-        
-        IF (elevator.isDown IS true) THEN
+        SET floorDifference = Floor OF elevator - requestFloor
+    
+        'PREVENTS USE OF ANY ELEVATORS UNDER MAINTENANCE'
+        IF (Status OF elevator IS NOT "online") THEN
             SET score TO -1
             ADD score TO elevatorScores
-            SKIP score calculation and go TO next elevator 
+            SKIP score calculation and go TO NEXT elevator 
         ENDIF
 
         'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
@@ -161,14 +142,17 @@ SEQUENCE ChooseElevator USING request AND elevators
         ENDCASE
 
         'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
-        IF (elevator.status IS "active") THEN
-            IF (floorDifference IS GREATER THAN OR EQUAL TO 0) AND (request.direction IS "DOWN") AND (elevator.direction IS "DOWN") THEN
+        IF (Movement OF elevator IS "active") THEN
+            IF (floorDifference >= 0) AND (requestDirection IS "down") AND (Direction OF elevator IS "DOWN") THEN
+                'Paths are crossed'
                 INCREMENT score WITH 10000
-            ELSE IF (floorDifference IS LESS THAN OR EQUAL TO 0) AND (request.direction IS "UP") AND (elevator.direction IS "UP") THEN
+            ELSE IF (floorDifference <= 0) AND (requestDirection IS "up") AND (Direction OF elevator IS "up") THEN
+                'Paths are crossed'
                 INCREMENT score WITH 10000
             ELSE
+                'Paths are not crossed, therefore try to avoid calling this elevator by minimizing the score'
                 SET score TO 0
-                SET nextFloorDifference TO elevator.nextFloor - request.currentFloor
+                SET nextFloorDifference = NextFloor OF elevator  - requestFloor
                 CASE (absolute value OF nextFloorDifference) OF 
                     0: INCREMENT score WITH 90
                     1: INCREMENT score WITH 80
@@ -183,26 +167,28 @@ SEQUENCE ChooseElevator USING request AND elevators
                 ENDCASE
 
         'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
-        IF (elevator.requestsQueue IS LESS THAN OR EQUAL TO 3) THEN
+        IF (RequestsQueue OF elevator <= 3) THEN
             INCREMENT score WITH 500
-        ELSE IF (elevator.requestsQueue IS LESS THAN OR EQUAL TO 7) THEN
+        ELSE IF (RequestsQueue OF elevator <= 7) THEN
             INCREMENT score WITH 250
         ENDIF
 
-
+        'SEND TOTAL'
         ADD score TO elevatorScores
     ENDFOR
 
+    'Get the value of highest score'            
     SET highestScore TO -1
     FOR EACH score in elevatorScores
-        IF (score IS GREATER THAN highestScore) THEN
+        IF (score > highestScore) THEN
             SET highestScore TO score 
         ENDIF
     ENDFOR
 
+    'Get the elevator with highest score (or get nothing if all elevators are under maintenance'
     SET chosenElevator TO null 
-    IF (highestScore IS NOT EQUAL TO -1) THEN
-        SET chosenElevator TO elevator WITH highestScore 
+    IF (highestScore IS NOT -1) THEN
+        SET chosenElevator = the elevator WITH highestScore 
     ENDIF
     RETURN chosenElevator 
 ENDSEQUENCE 
@@ -220,27 +206,6 @@ ENDSEQUENCE
 
 
 
-
-
-
-
-
-
-
-INIT elevators 
-INIT columns 
-{
-    SET numElevators TO 2
-    FOR elevator = 1 TO numElevators
-        ADD elevator {
-            // properties of an elevator
-            isDown
-            door
-            status
-            ...
-        } TO elevators
-    ENDFOR   
-}
 
 
 
