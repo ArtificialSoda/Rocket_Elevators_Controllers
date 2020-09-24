@@ -22,7 +22,7 @@ ENDFOR
 'Instantiate the columns, which then instantiate the elevators and its subfunctionalities'
 FOR columnNum = 1 TO numColumns
     SET column TO INSTANTIATE Column WITH columnNum AND "online"
-    CALL CreateElevatorList OF column WITH numElevatorPerColumn
+    CALL CreateElevatorList OF column 
     ADD column TO columnsList
 ENDFOR
 
@@ -63,8 +63,8 @@ DEFINE Column USING id AND status:
     Status: status,
     ElevatorList: SET TO empty List
 
-    SEQUENCE CreateElevatorList USING numElevators
-        FOR elevatorNum = 1 TO numElevators
+    SEQUENCE CreateElevatorList
+        FOR elevatorNum = 1 TO numElevatorsPerColumn
             SET elevator TO INSTANTIATE Elevator WITH elevatorNum AND "online"
             CALL InitButtons OF elevator 
             ADD elevator TO ElevatorList
