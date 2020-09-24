@@ -228,7 +228,7 @@ DEFINE CallButton USING floor AND direction AND columnID:
     isEmittingLight: SET TO false
 
     'Choose which elevator should be called'
-    'With the score system, a request gets send to the elevator with the most points accumulated for maximum efficiency'
+    'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
     SEQUENCE ChooseElevator USING requestFloor AND requestDirection
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
         
