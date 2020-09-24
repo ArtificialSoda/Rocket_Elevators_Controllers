@@ -80,7 +80,7 @@ DEFINE Elevator USING id AND status:
     Direction: SET TO null,
     CurrentFloor: SET TO originFloor,
     NextFloor: SET TO null,
-    RequestsQueue: SET TO empty List,
+    RequestsQueue: SET TO empty 2D List,
     Door: SET TO INSTANTIATE Door WITH "closed",
     Buttons: SET TO List OF size numFloors OF INSTANTIATE FloorButton
 
@@ -166,17 +166,6 @@ DEFINE Elevator USING id AND status:
         FOR EACH button in Buttons OF elevator 
             IF (sensors detect pressure on button) THEN
                 CALL Press OF button
-
-                'Get what is the direction of the new request'
-                SET floorDifference = CurrentFloor OF elevator - Floor OF button
-                IF (floorDifferece > 0) THEN
-                    SET requestDirection TO "down"
-                ELSE 
-                    SET requestDirection TO "up"
-                ENDIF
-
-                'Send new request to the same elevator'
-                ADD (Floor OF button, requestDirection) TO RequestsQueue OF elevator
             ENDIF
         ENDFOR
     ENDSEQUENCE
@@ -213,9 +202,22 @@ DEFINE FloorButton:
     isToggled: SET TO false,
     isEmittingLight: SET TO false
 
-    SEQUENCE Press 
-        SET isToggled TO true UNTIL Floor is reached THEN SET TO false
-        SET isEmittingLight TO true UNTIL Floor is reached THEN SET to false
+    SEQUENCE Press
+        IF (Floor IS NOT null) THEN
+            SET isToggled TO true UNTIL Floor is reached THEN SET TO false
+            SET isEmittingLight TO true UNTIL Floor is reached THEN SET to false
+
+            'Get what is the direction of the new request'
+            SET floorDifference = CurrentFloor OF elevator - Floor
+            IF (floorDifference > 0) THEN
+                SET direction TO "down"
+            ELSE 
+                SET direction TO "up"
+            ENDIF
+
+            'Send new request to the same elevator'
+            ADD (Floor, direction) TO RequestsQueue OF elevator
+        ENDIF
     ENDSEQUENCE 
 ENDDEFINE
 
@@ -227,14 +229,15 @@ DEFINE CallButton USING floor AND direction AND columnID:
     isPressed: SET TO false,
     isEmittingLight: SET TO false
 
-    'Choose which elevator should be called'
+    'Choose which elevator should be called, based on the call button's floor and direction'
     'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
-    SEQUENCE ChooseElevator USING requestFloor AND requestDirection
+    SEQUENCE ChooseElevator USING callBtnFloor AND callBtnDirection
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
         
         FOR EACH elevator in ElevatorList OF Column OF CallButton
             SET score TO 0
-            SET floorDifference = CurrentFloor OF elevator - requestFloor
+            SET floorDifference = CurrentFloor OF elevator - callBtnFloor
+    
         
             'PREVENTS USE OF ANY ELEVATORS UNDER MAINTENANCE'
             IF (Status OF elevator IS NOT "online") THEN
@@ -259,16 +262,17 @@ DEFINE CallButton USING floor AND direction AND columnID:
 
             'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
             IF (Movement OF elevator IS "active") THEN
-                IF (floorDifference >= 0) AND (requestDirection IS "down") AND (Direction OF elevator IS "down") THEN
+                IF (floorDifference >= 0) AND (callBtnDirection IS "down") AND (Direction OF elevator IS "down") THEN
                     'Paths are crossed'
                     INCREMENT score WITH 10000
-                ELSE IF (floorDifference <= 0) AND (requestDirection IS "up") AND (Direction OF elevator IS "up") THEN
+                ELSE IF (floorDifference <= 0) AND (callBtnDirection IS "up") AND (Direction OF elevator IS "up") THEN
                     'Paths are crossed'
                     INCREMENT score WITH 10000
                 ELSE
                     'Paths are not crossed, therefore try to avoid calling this elevator by minimizing the score'
                     SET score TO 0
-                    SET nextFloorDifference = NextFloor OF elevator  - requestFloor
+                    SET nextFloorDifference = NextFloor OF elevator  - callBtnFloor
+            
                     CASE (absolute value OF nextFloorDifference) OF 
                         0: INCREMENT score WITH 90
                         1: INCREMENT score WITH 80
@@ -311,13 +315,13 @@ DEFINE CallButton USING floor AND direction AND columnID:
 
     'Send request to chosen elevator'
     SEQUENCE Press
-        SET currentFloor TO Floor
+        SET currentFloor TO Floor 
         SET direction TO Direction
         SET isPressed TO true UNTIL elevator shows up THEN SET to false
         SET isEmittingLight TO true UNTIL elevator shows up THEN SET TO false
         CALL ChooseElevator OF CallButton WITH currentFloor AND direction RETURNING chosenElevator                               
 
-        IF (chosenElevator is null) THEN
+        IF (chosenElevator IS null) THEN
             DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
         ELSE 
             ADD (currentFloor, direction) TO RequestsQueue OF chosenElevator
