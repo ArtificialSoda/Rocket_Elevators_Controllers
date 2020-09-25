@@ -75,7 +75,88 @@ DEFINE Elevator USING id AND status:
         WHILE CurrentFloor OF elevator IS NOT NextFloor OF elevator
             CONTINUE going TOWARDS NextFloor
         ENDWHILE
-        DISPLAY CurrentFloor ON screen inside elevator
+    ENDSEQUENCE
+
+    'Sort requests for added efficiency'
+    SEQUENCE SortRequestsQueue
+        SET Movement OF elevator TO "active"
+        SET Direction OF elevator TO direction OF 1st request in RequestsQueue
+        
+        IF (Direction OF elevator IS "up") THEN
+            SORT RequestsQueue OF elevator in ASCENDING ORDER
+            FOR EACH request in RequestsQueue
+                IF (floor OF request < CurrentFloor OF elevator) OR (direction OF request IS NOT Direction OF elevator) THEN
+                    PUT request at the END OF RequestsQueue
+                ENDIF
+            ENDFOR  
+        ENDIF
+
+        IF (Direction OF elevator IS "down") THEN
+            SORT RequestsQueue OF elevator in DESCENDING ORDER
+            FOR EACH request in RequestsQueue
+                IF (floor OF request > CurrentFloor OF elevator) OR (direction OF request IS NOT Direction OF elevator) THEN
+                    PUT request at the END OF RequestsQueue
+                ENDIF
+            ENDFOR  
+        ENDIF
+    ENDSEQUENCE 
+
+    'Complete the requests'
+    SEQUENCE DoRequests
+
+        IF (RequestsQueue OF elevator IS NOT empty) THEN
+
+            'Make sure the queue is sorted before elevator completes any requests'
+            CALL SortRequestsQueue OF elevator 
+
+            'Go to destination (next) floor'
+            CALL CloseDoor OF Door OF elevator 
+            SET NextFloor OF elevator = floor OF 1st request in [SORTED] RequestsQueue
+            WHILE CurrentFloor OF elevator IS NOT NextFloor OF elevator
+                CONTINUE going TOWARDS NextFloor
+            ENDWHILE
+
+            'Destination floor is reached'
+            DISPLAY CurrentFloor ON screen inside elevator
+            CALL OpenDoor OF Door OF elevator
+            SET isEmittingLight OF ALL CallButton WITH CurrentFloor TO false 
+            REMOVE 1st request in [SORTED] RequestsQueue
+            
+            'Automatically close door after certain time'
+            CALL CloseDoor OF Door OF elevator AFTER 10 seconds
+
+        ELSE
+            'Automatically go to origin floor after certain time of inactivity, based on time of day'
+            IF (RequestsQueue OF elevator IS empty MORE THAN 5 minutes) AND (time of day IS morning work hours) THEN
+                CALL GoToOrigin
+                SET Movement OF elevator TO "idle"
+            ENDIF
+        ENDIF
+    ENDSEQUENCE
+
+    'Check if elevator is at full capacity'
+    SEQUENCE CheckWeight
+        SET maxWeightKG TO 1111
+        CALCULATE weight (kilograms) inside AND THEN SET TO currentWeightKG
+
+        IF (currentWeightKG > maxWeightKG) THEN
+            DISPLAY "ALERT: MAXIMUM WEIGHT CAPACITY SURPASSED, PLEASE LOWER THE WEIGHT" WITH beep sound
+            SET Door OF elevator TO "open"
+            FREEZE elevator
+        ENDIF
+    ENDSEQUENCE 
+ENDDEFINE
+
+'Define an elevator door'
+DEFINE Door USING status:
+    Status: status
+
+    SEQUENCE OpenDoor
+        SET status OF door TO "opened"
+    ENDSEQUENCE
+
+    SEQUENCE CloseDoor
+        SET status OF door TO "closed"
     ENDSEQUENCE
 ENDDEFINE
 
@@ -89,13 +170,15 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
     isPressed: SET TO false,
     isEmittingLight: SET TO false
 
-    'Get what is the direction'
-    SET originDifference = RequestedFloor - Floor
-    IF (originDifference > 0) THEN
-        SET Direction TO "up"
-    ELSE 
-        SET Direction TO "down"
-    ENDIF
+    'Set what is the direction'
+    SEQUENCE SetDirection
+        SET originDifference = RequestedFloor - Floor
+        IF (originDifference > 0) THEN
+            SET Direction TO "up"
+        ELSE 
+            SET Direction TO "down"
+        ENDIF
+    ENDSEQUENCE
     
     'Choose which column to go to, based on the requested floor'
     SEQUENCE ChooseColumn 
@@ -108,7 +191,8 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
 
     'Choose which elevator should be called'
     'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
-    SEQUENCE ChooseElevator USING boardBtnFloor
+    CALL SetDirection OF BoardButton
+    SEQUENCE ChooseElevator USING boardBtnFloor AND boardBtnDirection
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
         CALL ChooseColumn OF BoardButton RETURNING chosenColumn
 
@@ -219,16 +303,19 @@ DEFINE CallButton USING floor AND columnID:
     isPressed: SET TO false,
     isEmittingLight: SET TO false
 
-    'Get what is the direction'
-    SET originDifference = RequestedFloor - Floor
-    IF (originDifference > 0) THEN
-        SET Direction TO "up"
-    ELSE 
-        SET Direction TO "down"
-    ENDIF
+    'Set what is the direction'
+    SEQUENCE SetDirection
+        SET originDifference = RequestedFloor - Floor
+        IF (originDifference > 0) THEN
+            SET Direction TO "up"
+        ELSE 
+            SET Direction TO "down"
+        ENDIF
+    ENDSEQUENCE
     
     'Choose which elevator should be called'
     'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
+    CALL SetDirection OF CallButton
     SEQUENCE ChooseElevator USING callBtnFloor AND callBtnDirection
         CALL GetDirection OF CallButton
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
@@ -276,6 +363,7 @@ DEFINE CallButton USING floor AND columnID:
                         16 OR MORE        : INCREMENT score WITH 0
                     ENDCASE
                 ENDIF
+            ENDIF
 
             'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
             IF (RequestsQueue OF elevator <= 3) THEN
@@ -319,3 +407,14 @@ DEFINE CallButton USING floor AND columnID:
         ENDIF
     ENDSEQUENCE
 ENDDEFINE
+
+'Define an elevator floor display'
+DEFINE FloorDisplay USING elevator:
+    Elevator: elevator
+
+    SEQUENCE ShowFloor
+        DISPLAY CurrentFloor OF elevator ON a screen
+    ENDSEQUENCE
+
+ENDDEFINE
+
