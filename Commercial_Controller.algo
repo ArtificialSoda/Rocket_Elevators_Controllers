@@ -7,11 +7,55 @@
 'Globals'
 SET numBatteries TO 1
 SET numColumns TO 4
-SET numElevatorsPerColumn TO 3
+SET numElevatorsPerColumn TO 5 'Normally 3, but changed to 5 for testing purposes'
 SET originFloor TO 1
 SET numFloors TO 60
 SET numBasements TO 6
 SET numTotalFloors TO numFloors + numBasements
+'============================================= EXAMPLE SCENARIOS ======================================'
+SET battery TO INSTANTIATE Battery WITH batteryNum AND "online"
+CALL CreateColumnList OF battery
+CALL ActivateSystem OF battery
+
+
+SET column1 TO 1st column in ColumnList OF battery 'Covers B6 to B1 + RC'
+SET column2 TO 2nd column in ColumnList OF battery 'Covers  2 to 20 + RC'
+SET column3 TO 3rd column in ColumnList OF battery 'Covers 21 to 40 + RC'
+SET column4 TO 4th column in ColumnList OF battery 'Covers 41 to 60 + RC'
+
+'SCENARIO 1'
+SET pressedBoardButton TO INSTANTIATE BoardButton WITH 20 AND 1
+
+SET c2e1 TO 1st elevator in ElevatorList OF column2
+SET c2e2 TO 2nd elevator in ElevatorList OF column2
+SET c2e3 TO 3rd elevator in ElevatorList OF column2
+SET c2e4 TO 4th elevator in ElevatorList OF column2
+SET c2e5 TO 5th elevator in ElevatorList OF column2
+
+CALL ChangeAttributesTEST OF c2e1 WITH "active" AND 20 AND 5 AND "down"
+CALL ChangeAttributesTEST OF c2e2 WITH "active" AND 3 AND 15 AND "up"
+CALL ChangeAttributesTEST OF c2e3 WITH "active" AND 20 AND 5 AND "down"
+CALL ChangeAttributesTEST OF c2e4 WITH "active" AND 20 AND 5 AND "down"
+CALL ChangeAttributesTEST OF c2e5 WITH "active" AND 20 AND 5 AND "down"
+
+CALL Press OF pressedBoardButton
+'Result: 5th elevator of its column is sent'
+
+'SCENARIO 2'
+SET pressedBoardButton2 TO INSTANTIATE BoardButton WITH 36 AND 1
+CALL Press OF pressedBoardButton2
+'Result: 1st elevator of its column is sent'
+
+'SCENARIO 3'
+SET pressedCallButton TO INSTANTIATE CallButton WITH 54 AND 3
+CALL Press OF pressedCallButton
+'Result: 1st elevator of its column is sent'
+
+'SCENARIO 4'
+SET pressedCallButton2 TO INSTANTIATE CallButton WITH -3 AND 1
+CALL Press OF pressedCallButton2
+'Result: 4th elevator of its column is sent'
+
 ====================================================================================================================================================
 ~OBJECT DEFINITIONS~
 ====================================================================================================================================================
@@ -37,8 +81,48 @@ DEFINE Battery USING id AND status:
             ENDIF
 
             CALL CreateElevatorList OF column
+            CALL DisplayFloorsOutside OF column
             ADD column TO ColumnList
         ENDFOR
+    ENDSEQUENCE
+
+    'Activate the whole elevator system'
+    SEQUENCE ActivateSystem
+
+        'Reactivate after a shutdown if there is no more issues'
+        IF (Status IS "offline") AND (serious problem NOT exist)
+            SET Status TO "online"
+        ENDIF
+
+        WHILE Status IS "online"
+            FOR EACH column in ColumnList 
+                IF (Status OF column IS "online")
+
+                    FOR EACH elevator in ElevatorList OF column
+                        'Do constant security checks on the elevators'
+                        MONITOR the security and performance OF elevator
+                        SET Status OF elevator TO "offline" WHEN serious problem arises
+
+                        'Check if elevator is at full capacity'
+                        CALL CheckWeight OF elevator
+                        'Move elevators to their destinations'
+                        CALL DoRequests OF elevator
+                    ENDFOR
+
+                ENDIF
+            ENDFOR
+
+            'Do constant security checks on batteries, shutdown if necessary'
+            IF (THERE IS power outage)
+                ACTIVATE generators
+            ENDIF
+            IF (THERE IS fire)
+                GET location OF fire
+                ACTIVATE sprinklers NEAR location
+                SEND firefighters TO location
+            ENDIF
+            SET Status TO "offline" WHEN serious problem arises
+        ENDWHILE
     ENDSEQUENCE
 ENDDEFINE
 
@@ -73,13 +157,21 @@ DEFINE Elevator USING id AND status:
     ID: id,
     Status: status,
     Movement: SET TO "idle",
-    Direction: SET TO null,
     CurrentFloor: SET TO originFloor,
     NextFloor: SET TO null,
-    RequestsQueue: SET TO empty 2D List,
+    Direction: SET TO null,
+    RequestsQueue: SET TO empty List,
     Door: SET TO INSTANTIATE Door WITH "closed"
 
-     'Make elevator go to origin floor'
+    'Change attributes of elevator in 1 call - USE ONLY FOR TESTING'
+    SEQUENCE ChangeAttributesTEST USING newMovement AND newCurrentFloor AND newNextFloor AND newDirection
+        SET Movement TO newMovement
+        SET CurrentFloor TO newCurrentFloor
+        SET NextFloor TO newNextFloor
+        SET Direction TO newDirection
+    ENDSEQUENCE
+
+    'Make elevator go to origin floor'
     SEQUENCE GoToOrigin
         SET NextFloor OF elevator = originFloor
         WHILE CurrentFloor OF elevator IS NOT NextFloor OF elevator
@@ -89,22 +181,23 @@ DEFINE Elevator USING id AND status:
 
     'Sort requests for added efficiency'
     SEQUENCE SortRequestsQueue
+        SET request TO 1st request in RequestsQueue 
+
         SET Movement OF elevator TO "active"
-        SET Direction OF elevator TO direction OF 1st request in RequestsQueue
+        SET Direction OF elevator TO Direction OF request
         
         IF (Direction OF elevator IS "up") THEN
             SORT RequestsQueue OF elevator in ASCENDING ORDER
             FOR EACH request in RequestsQueue
-                IF (floor OF request < CurrentFloor OF elevator) OR (direction OF request IS NOT Direction OF elevator) THEN
+                IF (RequestedFloor OF request < CurrentFloor OF elevator) OR (Direction OF request IS NOT Direction OF elevator) THEN
                     PUT request at the END OF RequestsQueue
                 ENDIF
             ENDFOR  
-        ENDIF
 
-        IF (Direction OF elevator IS "down") THEN
+        ELSE IF (Direction OF elevator IS "down") THEN
             SORT RequestsQueue OF elevator in DESCENDING ORDER
             FOR EACH request in RequestsQueue
-                IF (floor OF request > CurrentFloor OF elevator) OR (direction OF request IS NOT Direction OF elevator) THEN
+                IF (RequestedFloor OF request > CurrentFloor OF elevator) OR (Direction OF request IS NOT Direction OF elevator) THEN
                     PUT request at the END OF RequestsQueue
                 ENDIF
             ENDFOR  
@@ -114,29 +207,53 @@ DEFINE Elevator USING id AND status:
     'Complete the requests'
     SEQUENCE DoRequests
 
-        IF (RequestsQueue OF elevator IS NOT empty) THEN
+        IF (RequestsQueue IS NOT empty) THEN
 
             'Make sure the queue is sorted before elevator completes any requests'
-            CALL SortRequestsQueue OF elevator 
+            CALL SortRequestsQueue
+            SET request TO 1st request OF RequestsQueue
 
-            'Go to destination (next) floor'
-            CALL CloseDoor OF Door OF elevator 
-            SET NextFloor OF elevator = floor OF 1st request in [SORTED] RequestsQueue
-            WHILE CurrentFloor OF elevator IS NOT NextFloor OF elevator
-                CONTINUE going TOWARDS NextFloor
+            'Go to next pickup floor (the floor upon which was made the request)'
+            CALL CloseDoor OF Door
+            SET NextFloor TO Floor OF request
+            WHILE CurrentFloor IS NOT NextFloor
+                
+                'Move up or move down a floor every 2 seconds'
+                IF (Direction OF request IS "up") THEN
+                    INCREMENT CurrentFloor WITH 1 AFTER 2 seconds
+                ELSE IF (Direction OF request IS "down") THEN
+                    DECREMENT CurrentFloor WITH 1 AFTER 2 seconds
+                ENDIF
+
+            ENDWHILE
+
+            'Pickup floor is reached'
+            CALL OpenDoor OF Door
+            WAIT 10 seconds
+            CALL CloseDoor OF Door
+
+            'Go to destination floor'
+            SET NextFloor TO RequestedFloor OF request
+            WHILE CurrentFloor IS NOT NextFloor
+                
+                'Move up or move down a floor every 2 seconds'
+                IF (Direction OF request IS "up") THEN
+                    INCREMENT CurrentFloor WITH 1 AFTER 2 seconds
+                ELSE IF (Direction OF request IS "down") THEN
+                    DECREMENT CurrentFloor WITH 1 AFTER 2 seconds
+                ENDIF
+
             ENDWHILE
 
             'Destination floor is reached'
-            CALL OpenDoor OF Door OF elevator
-            SET isEmittingLight OF ALL CallButton WITH CurrentFloor TO false 
-            REMOVE 1st request in [SORTED] RequestsQueue
-            
-            'Automatically close door after certain time'
-            CALL CloseDoor OF Door OF elevator AFTER 10 seconds
-
+            CALL OpenDoor OF Door
+            REMOVE request FROM RequestsQueue
+            WAIT 10 seconds
+            CALL CloseDoor OF Door
         ELSE
-            'Automatically go to origin floor after certain time of inactivity, based on time of day'
-            IF (RequestsQueue OF elevator IS empty MORE THAN 5 minutes) AND (time of day IS morning work hours) THEN
+
+            'Automatically go to origin floor after certain time of inactivity, in the mornings, to boost efficiency'
+            IF (RequestsQueue IS empty MORE THAN 5 minutes) AND (IS morning) THEN
                 CALL GoToOrigin
                 SET Movement OF elevator TO "idle"
             ENDIF
@@ -293,17 +410,15 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
 
     'Send request to chosen elevator'
     SEQUENCE Press
-        SET currentFloor TO Floor
-        SET direction TO Direction
         SET isPressed TO true UNTIL elevator shows up THEN SET TO false
         SET isEmittingLight TO true UNTIL elevator shows up THEN SET to false
-
-        CALL ChooseElevator OF BoardButton WITH currentFloor AND direction RETURNING chosenElevator
+        CALL ChooseElevator OF BoardButton WITH Floor AND Direction RETURNING chosenElevator
 
         IF (chosenElevator IS null) THEN
             DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
         ELSE 
-            ADD (currentFloor, direction) TO RequestsQueue OF chosenElevator
+            SET request TO INSTANTIATE Request WITH Floor AND RequestedFloor AND Direction
+            ADD request TO RequestsQueue OF chosenElevator
         ENDIF
     ENDSEQUENCE
 ENDDEFINE
@@ -409,16 +524,15 @@ DEFINE CallButton USING floor AND columnID:
 
     'Send request to chosen elevator'
     SEQUENCE Press
-        SET currentFloor TO Floor
-        SET direction TO Direction
         SET isPressed TO true UNTIL elevator shows up THEN SET to false
         SET isEmittingLight TO true UNTIL elevator shows up THEN SET TO false
-        CALL ChooseElevator OF CallButton WITH currentFloor AND direction RETURNING chosenElevator                               
+        CALL ChooseElevator OF CallButton WITH Floor AND Direction RETURNING chosenElevator                               
 
         IF (chosenElevator is null) THEN
             DISPLAY "ALL OF OUR ELEVATORS ARE CURRENTLY UNDERGOING MAINTENANCE, SORRY FOR THE INCONVENIENCE"
         ELSE 
-            ADD (currentFloor, direction) TO RequestsQueue OF chosenElevator
+            SET request TO INSTANTIATE Request WITH Floor AND RequestedFloor AND Direction
+            ADD request TO RequestsQueue OF chosenElevator
         ENDIF
     ENDSEQUENCE
 ENDDEFINE
@@ -434,5 +548,13 @@ DEFINE FloorDisplay USING elevator:
     ENDSEQUENCE
 
 ENDDEFINE
+
+'Define a request - which is sent to an elevator'
+DEFINE Request USING floor AND requestedFloor AND direction
+    Floor: floor,
+    RequestedFloor: requestedFloor,
+    Direction: direction
+ENDDEFINE
+====================================================================================================================================================
 
  
