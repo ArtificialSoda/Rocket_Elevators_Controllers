@@ -56,6 +56,16 @@ DEFINE Column USING id AND status:
             ADD elevator TO ElevatorList
         ENDFOR
     ENDSEQUENCE
+
+    'Enable floor display OUTSIDE each elevator, on each floor'
+    SEQUENCE DisplayFloorsOutside
+        FOR floor = LowestFloor TO HighestFloor
+            FOR EACH elevator in ElevatorList
+                SET floorDisplay TO INSTANTIATE FloorDisplay WITH elevator
+                CALL ShowFloor OF floorDisplay
+            ENDFOR
+        ENDFOR
+    ENDSEQUENCE
 ENDDEFINE 
 
 'Define an elevator'
@@ -66,7 +76,7 @@ DEFINE Elevator USING id AND status:
     Direction: SET TO null,
     CurrentFloor: SET TO originFloor,
     NextFloor: SET TO null,
-    RequestsQueue: SET TO empty List,
+    RequestsQueue: SET TO empty 2D List,
     Door: SET TO INSTANTIATE Door WITH "closed"
 
      'Make elevator go to origin floor'
@@ -117,7 +127,6 @@ DEFINE Elevator USING id AND status:
             ENDWHILE
 
             'Destination floor is reached'
-            DISPLAY CurrentFloor ON screen inside elevator
             CALL OpenDoor OF Door OF elevator
             SET isEmittingLight OF ALL CallButton WITH CurrentFloor TO false 
             REMOVE 1st request in [SORTED] RequestsQueue
@@ -132,6 +141,12 @@ DEFINE Elevator USING id AND status:
                 SET Movement OF elevator TO "idle"
             ENDIF
         ENDIF
+    ENDSEQUENCE
+
+    'Enable floor display INSIDE the elevator'
+    SEQUENCE DisplayFloor
+        SET floorDisplay TO INSTANTIATE FloorDisplay WITH Elevator
+        CALL ShowFloor OF floorDisplay
     ENDSEQUENCE
 
     'Check if elevator is at full capacity'
@@ -413,8 +428,11 @@ DEFINE FloorDisplay USING elevator:
     Elevator: elevator
 
     SEQUENCE ShowFloor
-        DISPLAY CurrentFloor OF elevator ON a screen
+        WHILE Status OF elevator IS NOT "offline"
+            DISPLAY CurrentFloor OF elevator ON a screen
+        ENDWHILE
     ENDSEQUENCE
 
 ENDDEFINE
 
+ 
