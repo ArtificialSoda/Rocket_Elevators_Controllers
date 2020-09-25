@@ -90,8 +90,8 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
     isEmittingLight: SET TO false
 
     'Get what is the direction'
-    SET floorDifference = RequestedFloor - Floor
-    IF (floorDifference > 0) THEN
+    SET originDifference = RequestedFloor - Floor
+    IF (originDifference > 0) THEN
         SET Direction TO "up"
     ELSE 
         SET Direction TO "down"
@@ -100,7 +100,7 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
     'Choose which column to go to, based on the requested floor'
     SEQUENCE ChooseColumn 
         FOR EACH column in ColumnList OF Battery OF BoardButton
-            IF (RequestedFloor > LowestFloor OF column) AND (RequestedFloor < HighestFloor OF column) THEN
+            IF (RequestedFloor >= LowestFloor OF column) AND (RequestedFloor <= HighestFloor OF column) THEN
                 RETURN column
             ENDIF 
         ENDFOR       
@@ -108,13 +108,17 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
 
     'Choose which elevator should be called'
     'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
-    SEQUENCE ChooseElevator USING boardBtnFloor AND boardBtnDirection
+    SEQUENCE ChooseElevator USING boardBtnFloor
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
         CALL ChooseColumn OF BoardButton RETURNING chosenColumn
 
         FOR EACH elevator in ElevatorList OF chosenColumn
             SET score TO 0
-            SET floorDifference = CurrentFloor OF elevator - boardBtnFloor
+            IF (CurrentFloor OF elevator IS NOT boardBtnFloor) THEN
+                SET floorDifference = CurrentFloor OF elevator - LowestFloor OF chosenColumn
+            ELSE
+                SET floorDifference = CurrentFloor OF elevator - boardBtnFloor 
+            ENDIF         
     
         
             'PREVENTS USE OF ANY ELEVATORS UNDER MAINTENANCE'
@@ -126,45 +130,42 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
 
             'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
             CASE (absolute value OF floorDifference) OF 
-                0: INCREMENT score WITH 900
-                1: INCREMENT score WITH 800
-                2: INCREMENT score WITH 700
-                3: INCREMENT score WITH 600
-                4: INCREMENT score WITH 500
-                5: INCREMENT score WITH 400
-                6: INCREMENT score WITH 300
-                7: INCREMENT score WITH 200
-                8: INCREMENT score WITH 100
-                9: INCREMENT score WITH 0
+                0                 : INCREMENT score WITH 1000
+                BETWEEN 1 AND 5   : INCREMENT score WITH 750
+                BETWEEN 6 AND 10  : INCREMENT score WITH 500
+                BETWEEN 11 AND 15 : INCREMENT score WITH 250
+                16 OR MORE        : INCREMENT score WITH 0
             ENDCASE
 
-            'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
+            'BONIFY SCORE BASED ON DIRECTION AND MOVEMENT'
+            'Reasoning for extra 250 points: We want to keep idle elevators available as long as possible, to avoid clustering, so we give slight priority to active elevators'
             IF (Movement OF elevator IS "active") THEN
-                IF (floorDifference >= 0) AND (callBtnDirection IS "down") AND (Direction OF elevator IS "down") THEN
-                    'Paths are crossed'
-                    INCREMENT score WITH 10000
-                ELSE IF (floorDifference <= 0) AND (callBtnDirection IS "up") AND (Direction OF elevator IS "up") THEN
-                    'Paths are crossed'
-                    INCREMENT score WITH 10000
-                ELSE
-                    'Paths are not crossed, therefore try to avoid calling this elevator by minimizing the score'
+                IF (floorDifference < 0) AND (callBtnDirection IS "down") AND (Direction OF elevator IS "down") THEN
+                    'Avoid that elevator because paths do not cross'
                     SET score TO 0
-                    SET nextFloorDifference = NextFloor OF elevator  - boardBtnFloor
-            
-                    CASE (absolute value OF nextFloorDifference) OF 
-                        0: INCREMENT score WITH 90
-                        1: INCREMENT score WITH 80
-                        2: INCREMENT score WITH 70
-                        3: INCREMENT score WITH 60
-                        4: INCREMENT score WITH 50
-                        5: INCREMENT score WITH 40
-                        6: INCREMENT score WITH 30
-                        7: INCREMENT score WITH 20
-                        8: INCREMENT score WITH 10
-                        9: INCREMENT score WITH 0
-                    ENDCASE
 
-            'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
+                ELSE IF (floorDifference > 0) AND (callBtnDirection IS "up") AND (Direction OF elevator IS "up") THEN
+                    'Avoid that elevator because paths do not cross'
+                    SET score TO 0
+                ELSE
+                    INCREMENT score WITH 250
+                ENDIF
+            ENDIF
+
+            'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE'
+            IF (NextFloor OF elevator IS NOT boardBtnFloor) THEN
+                SET nextFloorDifference = NextFloor OF elevator - LowestFloor OF chosenColumn
+            ELSE
+                SET nextFloorDifference = NextFloor OF elevator - boardBtnFloor 
+            ENDIF    
+            CASE (absolute value OF nextFloorDifference) OF 
+                0                 : INCREMENT score WITH 100
+                BETWEEN 1 AND 5   : INCREMENT score WITH 75
+                BETWEEN 6 AND 10  : INCREMENT score WITH 50
+                BETWEEN 11 AND 15 : INCREMENT score WITH 25
+                16 OR MORE        : INCREMENT score WITH 0
+            ENDCASE
+            
             IF (RequestsQueue OF elevator <= 3) THEN
                 INCREMENT score WITH 500
             ELSE IF (RequestsQueue OF elevator <= 7) THEN
@@ -209,17 +210,27 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
 ENDDEFINE
 
 
-'Define an elevator call button - it can only give requests that go down'
-DEFINE CallButton USING floor AND direction AND columnID:
+'Define an elevator call button
+DEFINE CallButton USING floor AND columnID:
     Floor: floor,
-    Direction: "down",
-    Column: SET TO the Column WHICH has ID OF columnID: 
+    Column: SET TO the Column WHICH has ID OF columnID,
+    RequestedFloor: SET TO originFloor,
+    Direction: SET TO null,
     isPressed: SET TO false,
     isEmittingLight: SET TO false
 
+    'Get what is the direction'
+    SET originDifference = RequestedFloor - Floor
+    IF (originDifference > 0) THEN
+        SET Direction TO "up"
+    ELSE 
+        SET Direction TO "down"
+    ENDIF
+    
     'Choose which elevator should be called'
     'With the score system, a request gets sent to the elevator with the most points accumulated for maximum efficiency'
     SEQUENCE ChooseElevator USING callBtnFloor AND callBtnDirection
+        CALL GetDirection OF CallButton
         SET elevatorScores TO empty List OF size numElevatorsPerColumn
         
         FOR EACH elevator in ElevatorList OF Column OF CallButton
@@ -236,40 +247,35 @@ DEFINE CallButton USING floor AND direction AND columnID:
 
             'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
             CASE (absolute value OF floorDifference) OF 
-                0: INCREMENT score WITH 900
-                1: INCREMENT score WITH 800
-                2: INCREMENT score WITH 700
-                3: INCREMENT score WITH 600
-                4: INCREMENT score WITH 500
-                5: INCREMENT score WITH 400
-                6: INCREMENT score WITH 300
-                7: INCREMENT score WITH 200
-                8: INCREMENT score WITH 100
-                9: INCREMENT score WITH 0
+                0                 : INCREMENT score WITH 1000
+                BETWEEN 1 AND 5   : INCREMENT score WITH 750
+                BETWEEN 6 AND 10  : INCREMENT score WITH 500
+                BETWEEN 11 AND 15 : INCREMENT score WITH 250
+                16 OR MORE        : INCREMENT score WITH 0
             ENDCASE
 
-            'BONIFY SCORE BASED ON DIRECTION (HIGHEST PRIORITY)'
+            'BONIFY SCORE BASED ON DIRECTION AND MOVEMENT (HIGHEST PRIORITY)'
             IF (Movement OF elevator IS "active") THEN
-                IF (floorDifference >= 0) AND (callBtnDirection IS Direction OF elevator) THEN
-                    'Paths are crossed'
+
+                'Paths are crossed on above-ground floors'
+                IF (floorDifference >= 0) AND (callBtnDirection IS "down") AND (Direction OF elevator IS "down") THEN
                     INCREMENT score WITH 10000
+                'Paths are crossed on basement floors'
+                ELSE IF (floorDifference <= 0) AND (callBtnDirection IS "up") AND (Direction OF elevator IS "up") THEN
+                    INCREMENT score WITH 10000
+                'Paths are not crossed, therefore try to avoid calling this elevator by minimizing the score'
                 ELSE
-                    'Paths are not crossed, therefore try to avoid calling this elevator by minimizing the score'
                     SET score TO 0
                     SET nextFloorDifference = NextFloor OF elevator  - callBtnFloor
             
                     CASE (absolute value OF nextFloorDifference) OF 
-                        0: INCREMENT score WITH 90
-                        1: INCREMENT score WITH 80
-                        2: INCREMENT score WITH 70
-                        3: INCREMENT score WITH 60
-                        4: INCREMENT score WITH 50
-                        5: INCREMENT score WITH 40
-                        6: INCREMENT score WITH 30
-                        7: INCREMENT score WITH 20
-                        8: INCREMENT score WITH 10
-                        9: INCREMENT score WITH 0
+                        0                 : INCREMENT score WITH 100
+                        BETWEEN 1 AND 5   : INCREMENT score WITH 75
+                        BETWEEN 6 AND 10  : INCREMENT score WITH 50
+                        BETWEEN 11 AND 15 : INCREMENT score WITH 25
+                        16 OR MORE        : INCREMENT score WITH 0
                     ENDCASE
+                ENDIF
 
             'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
             IF (RequestsQueue OF elevator <= 3) THEN
