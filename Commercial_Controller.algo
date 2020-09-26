@@ -12,89 +12,12 @@ SET originFloor TO 1
 SET numFloors TO 60
 SET numBasements TO 6
 SET numTotalFloors TO numFloors + numBasements
-'============================================= EXAMPLE SCENARIOS ======================================'
+
 'Instantiate the batteries, the columns, and the elevators'
 SET battery TO INSTANTIATE Battery WITH 1 AND "online"
 CALL CreateColumnList OF battery
 CALL ActivateSystem OF battery
 
-SET column1 TO 1st column in ColumnList OF battery 'Covers B6 to B1 + RC'
-SET column2 TO 2nd column in ColumnList OF battery 'Covers 02 to 20 + RC'
-SET column3 TO 3rd column in ColumnList OF battery 'Covers 21 to 40 + RC'
-SET column4 TO 4th column in ColumnList OF battery 'Covers 41 to 60 + RC'
-
-
-'SCENARIO 1'
-SET pressedBoardButton TO INSTANTIATE BoardButton WITH 20 AND 1
-
-SET c2e1 TO 1st elevator in ElevatorList OF column2
-SET c2e2 TO 2nd elevator in ElevatorList OF column2
-SET c2e3 TO 3rd elevator in ElevatorList OF column2
-SET c2e4 TO 4th elevator in ElevatorList OF column2
-SET c2e5 TO 5th elevator in ElevatorList OF column2
-
-CALL ChangeAttributesTEST OF c2e1 WITH "active" AND 20 AND 5 AND "down"
-CALL ChangeAttributesTEST OF c2e2 WITH "active" AND 3 AND 15 AND "up"
-CALL ChangeAttributesTEST OF c2e3 WITH "active" AND 13 AND 1 AND "down"
-CALL ChangeAttributesTEST OF c2e4 WITH "active" AND 15 AND 2 AND "down"
-CALL ChangeAttributesTEST OF c2e5 WITH "active" AND 6 AND 1 AND "down"
-
-CALL Press OF pressedBoardButton
-'Result: 5th elevator (c2e5) is sent'
-
-'SCENARIO 2'
-SET pressedBoardButton2 TO INSTANTIATE BoardButton WITH 36 AND 1
-
-SET c3e1 TO 1st elevator in ElevatorList OF column3
-SET c3e2 TO 2nd elevator in ElevatorList OF column3
-SET c3e3 TO 3rd elevator in ElevatorList OF column3
-SET c3e4 TO 4th elevator in ElevatorList OF column3
-SET c3e5 TO 5th elevator in ElevatorList OF column3
-
-CALL ChangeAttributesTEST OF c3e1 WITH "active" AND 1 AND 21 AND "up"
-CALL ChangeAttributesTEST OF c3e2 WITH "active" AND 23 AND 28 AND "up"
-CALL ChangeAttributesTEST OF c3e3 WITH "active" AND 33 AND 1 AND "down"
-CALL ChangeAttributesTEST OF c3e4 WITH "active" AND 40 AND 24 AND "down"
-CALL ChangeAttributesTEST OF c3e5 WITH "active" AND 39 AND 1 AND "down"
-
-CALL Press OF pressedBoardButton2
-'Result: 1st elevator (c3e1) is sent'
-
-'SCENARIO 3'
-SET pressedCallButton TO INSTANTIATE CallButton WITH 54 AND 4
-
-SET c4e1 TO 1st elevator in ElevatorList OF column4
-SET c4e2 TO 2nd elevator in ElevatorList OF column4
-SET c4e3 TO 3rd elevator in ElevatorList OF column4
-SET c4e4 TO 4th elevator in ElevatorList OF column4
-SET c4e5 TO 5th elevator in ElevatorList OF column4
-
-CALL ChangeAttributesTEST OF c4e1 WITH "active" AND 58 AND 1 AND "down"
-CALL ChangeAttributesTEST OF c4e2 WITH "active" AND 50 AND 60 AND "up"
-CALL ChangeAttributesTEST OF c4e3 WITH "active" AND 46 AND 58 AND "up"
-CALL ChangeAttributesTEST OF c4e4 WITH "active" AND 1 AND 54 AND "up"
-CALL ChangeAttributesTEST OF c4e5 WITH "active" AND 60 AND 1 AND "down"
-
-CALL Press OF pressedCallButton
-'Result: 1st elevator (c4e1) is sent'
-
-'SCENARIO 4'
-SET pressedCallButton2 TO INSTANTIATE CallButton WITH -3 AND 1
-
-SET c1e1 TO 1st elevator in ElevatorList OF column1
-SET c1e2 TO 2nd elevator in ElevatorList OF column1
-SET c1e3 TO 3rd elevator in ElevatorList OF column1
-SET c1e4 TO 4th elevator in ElevatorList OF column1
-SET c1e5 TO 5th elevator in ElevatorList OF column1
-
-CALL ChangeAttributesTEST OF c1e1 WITH "idle" AND -4 AND null AND null
-CALL ChangeAttributesTEST OF c1e2 WITH "idle" AND  1 AND null AND null
-CALL ChangeAttributesTEST OF c1e3 WITH "active" AND -3 AND -5 AND "down"
-CALL ChangeAttributesTEST OF c1e4 WITH "active" AND -6 AND 1 AND "up"
-CALL ChangeAttributesTEST OF c1e5 WITH "active" AND -1 AND -6 AND "down"
-
-CALL Press OF pressedCallButton2
-'Result: 4th elevator (c1e4) is sent'
 ====================================================================================================================================================
 ~OBJECT DEFINITIONS~
 ====================================================================================================================================================
@@ -302,11 +225,11 @@ DEFINE Elevator USING id AND status:
             WAIT 10 seconds
             CALL CloseDoor OF Door
         ELSE
-
+            SET Movement OF elevator TO "idle"
+            SET Direction OF elevator TO null
             'Automatically go to origin floor after certain time of inactivity, in the mornings, to boost efficiency'
             IF (RequestsQueue IS empty MORE THAN 5 minutes) AND (IS morning) THEN
                 CALL GoToOrigin
-                SET Movement OF elevator TO "idle"
             ENDIF
         ENDIF
     ENDSEQUENCE
@@ -394,16 +317,15 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
                 ADD score TO elevatorScores
             ELSE 
                 'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
-                CASE (absolute value OF floorDifference) OF 
-                    0                 : INCREMENT score WITH 1000
-                    BETWEEN 1 AND 5   : INCREMENT score WITH 750
-                    BETWEEN 6 AND 10  : INCREMENT score WITH 500
-                    BETWEEN 11 AND 15 : INCREMENT score WITH 250
-                    16 OR MORE        : INCREMENT score WITH 0
-                ENDCASE
+                SET absFloorDifference TO absolute value OF floorDifference
+                IF (absFloorDifference IS 0) THEN
+                    INCREMENT score WITH 10000
+                ELSE
+                    INCREMENT score WITH 10000/(absFloorDifference + 1)
+                ENDIF
 
                 'BONIFY SCORE BASED ON DIRECTION AND MOVEMENT'
-                'Reasoning for extra 250 points: We want to keep idle elevators available as long as possible, to avoid clustering, so we give slight priority to active elevators'
+                'Reasoning for extra 1000 points: We want to keep idle elevators available as long as possible, to avoid clustering, so we give slight priority to active elevators'
                 IF (Movement OF elevator IS "active") THEN
                     IF (floorDifference < 0) AND (callBtnDirection IS "down") AND (Direction OF elevator IS "down") THEN
                         'Avoid that elevator because paths do not cross'
@@ -413,7 +335,7 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
                         'Avoid that elevator because paths do not cross'
                         SET score TO 0
                     ELSE
-                        INCREMENT score WITH 250
+                        INCREMENT score WITH 1000
                     ENDIF
                 ENDIF
 
@@ -423,16 +345,16 @@ DEFINE BoardButton USING requestedFloor AND batteryID:
                 ELSE
                     SET nextFloorDifference = NextFloor OF elevator - boardBtnFloor 
                 ENDIF    
-                CASE (absolute value OF nextFloorDifference) OF 
-                    0                 : INCREMENT score WITH 100
-                    BETWEEN 1 AND 5   : INCREMENT score WITH 75
-                    BETWEEN 6 AND 10  : INCREMENT score WITH 50
-                    BETWEEN 11 AND 15 : INCREMENT score WITH 25
-                    16 OR MORE        : INCREMENT score WITH 0
-                ENDCASE
+
+                SET absNextFloorDifference TO absolute value OF nextFloorDifference
+                    IF (absNextFloorDifference IS 0) THEN
+                        INCREMENT score WITH 1000
+                    ELSE
+                        INCREMENT score WITH 1000/(absNextFloorDifference + 1)
+                    ENDIF
                 
                 IF (RequestsQueue OF elevator <= 3) THEN
-                    INCREMENT score WITH 500
+                    INCREMENT score WITH 1000
                 ELSE IF (RequestsQueue OF elevator <= 7) THEN
                     INCREMENT score WITH 250
                 ENDIF
@@ -514,13 +436,12 @@ DEFINE CallButton USING floor AND columnID:
                 ADD score TO elevatorScores
             ELSE
                 'BONIFY SCORE BASED ON THE DIFFERENCE IN FLOOR' 
-                CASE (absolute value OF floorDifference) OF 
-                    0                 : INCREMENT score WITH 1000
-                    BETWEEN 1 AND 5   : INCREMENT score WITH 750
-                    BETWEEN 6 AND 10  : INCREMENT score WITH 500
-                    BETWEEN 11 AND 15 : INCREMENT score WITH 250
-                    16 OR MORE        : INCREMENT score WITH 0
-                ENDCASE
+                SET absFloorDifference TO absolute value OF floorDifference
+                IF (absFloorDifference IS 0) THEN
+                    INCREMENT score WITH 5000
+                ELSE
+                    INCREMENT score WITH 5000/(absFloorDifference + 1)
+                ENDIF
 
                 'BONIFY SCORE BASED ON DIRECTION AND MOVEMENT (HIGHEST PRIORITY)'
                 IF (Movement OF elevator IS "active") THEN
@@ -536,19 +457,18 @@ DEFINE CallButton USING floor AND columnID:
                         SET score TO 0
                         SET nextFloorDifference = NextFloor OF elevator  - callBtnFloor
                 
-                        CASE (absolute value OF nextFloorDifference) OF 
-                            0                 : INCREMENT score WITH 100
-                            BETWEEN 1 AND 5   : INCREMENT score WITH 75
-                            BETWEEN 6 AND 10  : INCREMENT score WITH 50
-                            BETWEEN 11 AND 15 : INCREMENT score WITH 25
-                            16 OR MORE        : INCREMENT score WITH 0
-                        ENDCASE
+                        SET absNextFloorDifference TO absolute value OF nextFloorDifference
+                        IF (absNextFloorDifference IS 0) THEN
+                            INCREMENT score WITH 500
+                        ELSE
+                            INCREMENT score WITH 500/(absNextFloorDifference + 1)
+                        ENDIF
                     ENDIF
                 ENDIF
 
                 'BONIFY SCORE BASED ON THE ALREADY EXISTING REQUEST QUEUE SIZE'
                 IF (RequestsQueue OF elevator <= 3) THEN
-                    INCREMENT score WITH 500
+                    INCREMENT score WITH 1000
                 ELSE IF (RequestsQueue OF elevator <= 7) THEN
                     INCREMENT score WITH 250
                 ENDIF
@@ -607,6 +527,99 @@ DEFINE Request USING floor AND requestedFloor AND direction
     RequestedFloor: requestedFloor,
     Direction: direction
 ENDDEFINE
-====================================================================================================================================================
+
+'==================================================================================================================================================='
+'                                               ~ EXAMPLE SCENARIOS ~
+'==================================================================================================================================================='
+SET column1 TO 1st column in ColumnList OF battery 'Covers B6 to B1 + RC'
+SET column2 TO 2nd column in ColumnList OF battery 'Covers 02 to 20 + RC'
+SET column3 TO 3rd column in ColumnList OF battery 'Covers 21 to 40 + RC'
+SET column4 TO 4th column in ColumnList OF battery 'Covers 41 to 60 + RC'
+
+
+'SCENARIO 1'
+SET pressedBoardButton TO INSTANTIATE BoardButton WITH 20 AND 1
+
+SET c2e1 TO 1st elevator in ElevatorList OF column2
+SET c2e2 TO 2nd elevator in ElevatorList OF column2
+SET c2e3 TO 3rd elevator in ElevatorList OF column2
+SET c2e4 TO 4th elevator in ElevatorList OF column2
+SET c2e5 TO 5th elevator in ElevatorList OF column2
+
+CALL ChangeAttributesTEST OF c2e1 WITH "active" AND 20 AND 5 AND "down"
+CALL ChangeAttributesTEST OF c2e2 WITH "active" AND 3 AND 15 AND "up"
+CALL ChangeAttributesTEST OF c2e3 WITH "active" AND 13 AND 1 AND "down"
+CALL ChangeAttributesTEST OF c2e4 WITH "active" AND 15 AND 2 AND "down"
+CALL ChangeAttributesTEST OF c2e5 WITH "active" AND 6 AND 1 AND "down"
+
+CALL Press OF pressedBoardButton
+'Result: 5th elevator (c2e5) is sent'
+
+
+
+
+'SCENARIO 2'
+SET pressedBoardButton2 TO INSTANTIATE BoardButton WITH 36 AND 1
+
+SET c3e1 TO 1st elevator in ElevatorList OF column3
+SET c3e2 TO 2nd elevator in ElevatorList OF column3
+SET c3e3 TO 3rd elevator in ElevatorList OF column3
+SET c3e4 TO 4th elevator in ElevatorList OF column3
+SET c3e5 TO 5th elevator in ElevatorList OF column3
+
+CALL ChangeAttributesTEST OF c3e1 WITH "active" AND 1 AND 21 AND "up"
+CALL ChangeAttributesTEST OF c3e2 WITH "active" AND 23 AND 28 AND "up"
+CALL ChangeAttributesTEST OF c3e3 WITH "active" AND 33 AND 1 AND "down"
+CALL ChangeAttributesTEST OF c3e4 WITH "active" AND 40 AND 24 AND "down"
+CALL ChangeAttributesTEST OF c3e5 WITH "active" AND 39 AND 1 AND "down"
+
+CALL Press OF pressedBoardButton2
+'Result: 1st elevator (c3e1) is sent'
+
+
+
+
+
+'SCENARIO 3'
+SET pressedCallButton TO INSTANTIATE CallButton WITH 54 AND 4
+
+SET c4e1 TO 1st elevator in ElevatorList OF column4
+SET c4e2 TO 2nd elevator in ElevatorList OF column4
+SET c4e3 TO 3rd elevator in ElevatorList OF column4
+SET c4e4 TO 4th elevator in ElevatorList OF column4
+SET c4e5 TO 5th elevator in ElevatorList OF column4
+
+CALL ChangeAttributesTEST OF c4e1 WITH "active" AND 58 AND 1 AND "down"
+CALL ChangeAttributesTEST OF c4e2 WITH "active" AND 50 AND 60 AND "up"
+CALL ChangeAttributesTEST OF c4e3 WITH "active" AND 46 AND 58 AND "up"
+CALL ChangeAttributesTEST OF c4e4 WITH "active" AND 1 AND 54 AND "up"
+CALL ChangeAttributesTEST OF c4e5 WITH "active" AND 60 AND 1 AND "down"
+
+CALL Press OF pressedCallButton
+'Result: 1st elevator (c4e1) is sent'
+
+
+
+
+
+'SCENARIO 4'
+SET pressedCallButton2 TO INSTANTIATE CallButton WITH -3 AND 1
+
+SET c1e1 TO 1st elevator in ElevatorList OF column1
+SET c1e2 TO 2nd elevator in ElevatorList OF column1
+SET c1e3 TO 3rd elevator in ElevatorList OF column1
+SET c1e4 TO 4th elevator in ElevatorList OF column1
+SET c1e5 TO 5th elevator in ElevatorList OF column1
+
+CALL ChangeAttributesTEST OF c1e1 WITH "idle" AND -4 AND null AND null
+CALL ChangeAttributesTEST OF c1e2 WITH "idle" AND  1 AND null AND null
+CALL ChangeAttributesTEST OF c1e3 WITH "active" AND -3 AND -5 AND "down"
+CALL ChangeAttributesTEST OF c1e4 WITH "active" AND -6 AND 1 AND "up"
+CALL ChangeAttributesTEST OF c1e5 WITH "active" AND -1 AND -6 AND "down"
+
+CALL Press OF pressedCallButton2
+'Result: 4th elevator (c1e4) is sent'
+
+'============================================ END OF EXAMPLE SCENARIOS ============================================================================='
 
  
