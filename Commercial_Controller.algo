@@ -148,6 +148,8 @@ DEFINE Battery USING id AND status:
                         MONITOR the security and performance OF elevator
                         SET Status OF elevator TO "offline" WHEN serious problem arises
 
+                        'Display floor INSIDE elevator'
+                        CALL DisplayFloor OF elevator
                         'Check if elevator is at full capacity'
                         CALL CheckWeight OF elevator
                         'Move elevators to their destinations'
@@ -290,7 +292,7 @@ DEFINE Elevator USING id AND status:
                     ELSE IF (Direction OF request IS "down") THEN
                         DECREMENT CurrentFloor WITH 1 AFTER 2 seconds
                     ENDIF
-                    
+
                 ENDWHILE
             ENDIF
 
