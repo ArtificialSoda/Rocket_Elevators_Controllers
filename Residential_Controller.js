@@ -18,7 +18,6 @@ class Battery
     isPowerOutage = false;
     isMechanicalFailure = false;
     columnList = [];
-    static numColumns = 1;
 
     /* CONSTRUCTOR */
     constructor(id)
@@ -31,7 +30,7 @@ class Battery
     // Initialize the battery's collection of columns
     createColumnList()
     {
-        for (let columnID = 1; columnID <= this.numColumns; columnID++)
+        for (let columnID = 1; columnID <= Battery.numColumns; columnID++)
         {
             let column = new Column(columnID);
             column.createElevatorList();
@@ -64,7 +63,6 @@ class Column
     elevatorList = [];
     upCallButtons = [];
     downCallButtons = [];
-    static numElevators;
 
     /* CONSTRUCTOR */
     constructor(id)
@@ -77,9 +75,10 @@ class Column
     // Initialize the column's collection of elevators
     createElevatorList()
     {
-        for (let elevatorID = 1; elevatorID <= this.numElevators; elevatorID++)
+        for (let elevatorID = 1; elevatorID <= Column.numElevators; elevatorID++)
         {
             let elevator = new Elevator(elevatorID);
+            elevator.createFloorButtons();
             this.elevatorList.push(elevator);
         }
     }
@@ -87,17 +86,18 @@ class Column
     // Initialize all the call buttons, on each floor
     createCallButtons()
     {
-        for (numFloor = 1; numFloor <= this.numFloors; numFloor++)
+        for (let numFloor = 1; numFloor <= this.numFloors; numFloor++)
         {
-            let upCallBtn = new CallButton(numFloor, "up");
+            let upCallBtn = new CallButton(numFloor, "up", this);
             this.upCallButtons.push(upCallBtn);
 
-            let downCallBtn = new CallButton(numFloor, "down");
+            let downCallBtn = new CallButton(numFloor, "down", this);
             this.downCallButtons.push(downCallBtn);
         }
     }
 
-    // Choose elevator and move it 
+    // Complete request that was sent to chosen elevator
+    // Return chosen elevator, for further use
     requestElevator(requestedFloor, direction)
     {
         let callButtonToPress;
@@ -107,7 +107,10 @@ class Column
         else if (direction == "down")
             callButtonToPress = this.downCallButtons.find(button => button.floor == requestedFloor);
 
-        callButtonToPress.press();
+        let chosenElevator = callButtonToPress.press();
+        chosenElevator.doRequests();
+        
+        return chosenElevator;
     }
 
     // Move chosen elevator to requested floor
@@ -115,6 +118,7 @@ class Column
     {
         let floorButtonToPress = elevator.floorButtons.find(button => button.floor == requestedFloor);
         floorButtonToPress.press();
+        elevator.doRequests();
     }
 }
 
@@ -124,13 +128,12 @@ class Elevator
     id;
     status = "online"; // offline|online
     movement = "idle"; // idle|up|down
-    currentFloor = originFloor;
+    originFloor = 1;
+    currentFloor = this.originFloor;
     nextFloor = null;
     requestsQueue = [];
     floorButtons = [];
     door = new ElevatorDoor("closed");
-    static originFloor;
-    static numFloors;
 
     /* CONSTRUCTOR */
     constructor(id)
@@ -151,9 +154,9 @@ class Elevator
     // Create all floor buttons that should be inside the elevator
     createFloorButtons()
     {
-        for (let numFloor = 1; numFloor <= numFloors; numFloor++)
+        for (let numFloor = 1; numFloor <= Elevator.numFloors; numFloor++)
         {
-            let floorButton = new FloorButton(numFloor);
+            let floorButton = new FloorButton(numFloor, this);
             this.floorButtons.push(floorButton);
         }
     }
@@ -161,20 +164,20 @@ class Elevator
     // Make elevator go to its scheduled next floor
     goToNextFloor()
     {
-        let timer;
-        console.log(`Elevator ${this.id} is about to go to the ${this.nextFloor} floor...\n\n`);
+        console.log(`Elevator ${this.id}, currently at floor ${this.currentFloor}, is about to go to floor ${this.nextFloor}...`);
+        console.log("=================================================================");
         
         while (this.currentFloor != this.nextFloor)
         {
             if (this.movement == "up")
-               timer = setInterval(() => this.currentFloor++, 2000);
+                this.currentFloor++;
             else if (this.movement == "down")
-               timer = setInterval(() => this.currentFloor--, 2000);
+                this.currentFloor--;
 
-            console.log(`Elevator ${this.id}'s current floor mid-travel: ${this.currentFloor}\n`);
+            console.log(`... Elevator ${this.id}'s current floor mid-travel: ${this.currentFloor} ...`);
         }
-        clearInterval(timer);
-        console.log(`\nElevator ${this.id} has reached its requested floor! It is now at floor ${this.currentFloor}.\n`);
+        console.log("=================================================================");
+        console.log(`Elevator ${this.id} has reached its requested floor! It is now at floor ${this.currentFloor}.`);
     }
 
     // Make elevator go to origin floor
@@ -238,9 +241,8 @@ class Elevator
             this.door.openDoor();
             this.requestsQueue.splice(0, 1);
 
-            // Automatically close door after 10s of inactivity
-            let wait = setTimeout(() => this.door.closeDoor(), 10000);
-            clearTimeout(wait);
+            // Automatically close door
+            this.door.closeDoor();
         }
         else 
         {
@@ -278,30 +280,33 @@ class ElevatorDoor
     }
 }
 
-class FloorButton extends Elevator
+class FloorButton
 {
     /* FIELDS */
     floor;
+    elevator;
     direction = null;
     isToggled = false;
     isEmittingLight = false;
     
     /* CONSTRUCTOR */
-    constructor(floor)
+    constructor(floor, elevator)
     {
         this.floor = floor;
+        this.elevator = elevator;
     }
 
     /* METHODS */
     
     press()
     {
+        console.log(`\nYou're currently on floor ${this.elevator.currentFloor}, inside Elevator ${this.elevator.id}. You decide to go to floor ${this.floor}.`);
+
         this.isToggled = true;
         this.controlLight();
         
         this.getDirection();
         this.sendRequest();
-        super.doRequests();
 
         this.isToggled = false;
         this.controlLight();
@@ -319,7 +324,7 @@ class FloorButton extends Elevator
     // Get what is the direction of a new request
     getDirection()
     {
-        let floorDifference = super.currentFloor - this.floor;
+        let floorDifference = this.elevator.currentFloor - this.floor;
         if (floorDifference > 0)
             this.direction = "down"
         else 
@@ -330,38 +335,44 @@ class FloorButton extends Elevator
     sendRequest()
     {
         let request = new Request(this.floor, this.direction);
-        super.requestsQueue.push(request);
+        this.elevator.requestsQueue.push(request);
     }
 }
 
-class CallButton extends Column
+class CallButton
 {
     /* FIELDS */
     floor;
     direction;
+    column;
     isToggled = false;
     isEmittingLight = false;
 
     /* CONSTRUCTOR */
-    constructor(floor, direction)
+    constructor(floor, direction, column)
     {
         this.floor = floor;
         this.direction = direction;
+        this.column = column;
     }
 
     /* METHODS */
 
+    // Return elevator that was chosen, for further use
     press()
     {
+        console.log(`\nYou are on floor ${this.floor}. You decide to call an elevator.`);
+
         this.isToggled = true;
         this.controlLight();
 
         let chosenElevator = this.chooseElevator();
         this.sendRequest(chosenElevator);
-        chosenElevator.doRequests();
 
         this.isToggled = false;
         this.controlLight();
+
+        return chosenElevator;
     }
 
     // Light up a pressed button
@@ -377,8 +388,10 @@ class CallButton extends Column
     chooseElevator()
     {
         let elevatorScores = [];
-        for (elevator of super.elevatorList)
+        
+        for (let elevator of this.column.elevatorList)
         {
+            // Initialize score to 0
             let score = 0;
             let floorDifference = elevator.currentFloor - this.floor;
 
@@ -416,7 +429,7 @@ class CallButton extends Column
                         score = 0;
             
                         // Give redemption points, in worst case scenario where all elevators never cross paths
-                        let nextFloorDifference = elevator.NextFloor - this.floor;
+                        let nextFloorDifference = elevator.nextFloor - this.floor;
                         let absNextFloorDiff = Math.abs(nextFloorDifference);
 
                         if (absNextFloorDiff == 0)
@@ -439,7 +452,8 @@ class CallButton extends Column
         
         // Get value of highest score
         let highestScore = -1;
-        for (score of elevatorScores)
+
+        for (let score of elevatorScores)
         {
             if (score > highestScore)
                 highestScore = score;
@@ -448,8 +462,9 @@ class CallButton extends Column
         // Get the elevator with the highest score (or NULL if all elevators were offline)
         let chosenElevator = null;
         if (highestScore > -1)
-            chosenElevator = super.elevatorList[elevatorScores.indexOf(highestScore)];
+            chosenElevator = this.column.elevatorList[elevatorScores.indexOf(highestScore)];
         
+        console.log(`Chosen elevator's ID: ${chosenElevator.id}`);
         return chosenElevator;
 
 
@@ -493,17 +508,49 @@ battery.createColumnList();
 battery.monitorSystem();
 
 // Set placeholder for column used in test scenario
-console.log(battery);
-console.log(battery.columnList[0]);
 var column = battery.columnList[0];
 
 /*** SCENARIO 1 ***/
-/*
-var elevatorA1 = column.elevatorList[0].changeProperties(2, null, "idle");
-var elevatorB1 = column.elevatorList[0].changeProperties(2, null, "idle");
+function Scenario1()
+{
+    console.log("**********************************************************************************************************************************");
+    console.log("SCENARIO 1");
+    console.log("**********************************************************************************************************************************");
 
-column.requestElevator(3, "up");
-*/
+    column.elevatorList[0].changeProperties(2, null, "idle");
+    column.elevatorList[1].changeProperties(6, null, "idle");
+
+    var chosenElevator = column.requestElevator(3, "up");
+    column.requestFloor(chosenElevator, 7);
+}
+
+/*** SCENARIO 2 ***/
+function Scenario2()
+{
+    console.log("**********************************************************************************************************************************");
+    console.log("SCENARIO 2");
+    console.log("**********************************************************************************************************************************");
+
+    column.elevatorList[0].changeProperties(10, null, "idle");
+    column.elevatorList[1].changeProperties(3, null, "idle");
+
+    var chosenElevator = column.requestElevator(1, "up");
+    column.requestFloor(chosenElevator, 6);
+
+    console.log("=== 2 minutes later ===");
+
+    chosenElevator = column.requestElevator(3, "up");
+    column.requestFloor(chosenElevator, 5);
+
+    console.log("=== After a bit more time ===");
+
+    chosenElevator = column.requestElevator(9, "down");
+    column.requestFloor(chosenElevator, 2);
+}
+
+Scenario1();
+//Scenario2();
+
 
 
 
