@@ -47,7 +47,14 @@ class Battery
         if (this.isFire || this.isPowerOutage || this.isMechanicalFailure)
         {
             this.status = "offline";
-            console.log(`Battery ${this.id} has been shut down for maintenance. Sorry for the inconvenience.`);
+            for (let column of this.columnList)
+            {
+                for (let elevator of column.elevatorList)
+                {
+                    elevator.status = "offline";
+                }
+            }
+            throw new Error(`Battery ${this.id} has been shut down for maintenance. Sorry for the inconvenience.`);
         }
     }
 
@@ -131,9 +138,11 @@ class Elevator
     originFloor = 1;
     currentFloor = this.originFloor;
     nextFloor = null;
+    maxWeightKG = 1000;
     requestsQueue = [];
     floorButtons = [];
     door = new ElevatorDoor("closed");
+    floorDisplay = new FloorDisplay(this);
 
     /* CONSTRUCTOR */
     constructor(id)
@@ -170,11 +179,15 @@ class Elevator
         while (this.currentFloor != this.nextFloor)
         {
             if (this.movement == "up")
+            {
                 this.currentFloor++;
+            }
             else if (this.movement == "down")
+            {
                 this.currentFloor--;
+            }
 
-            console.log(`... Elevator ${this.id}'s current floor mid-travel: ${this.currentFloor} ...`);
+            this.floorDisplay.displayFloor();
         }
         console.log("=================================================================");
         console.log(`Elevator ${this.id} has reached its requested floor! It is now at floor ${this.currentFloor}.`);
@@ -192,8 +205,8 @@ class Elevator
     sortRequestsQueue()
     {
         let request = this.requestsQueue[0];
+        this.getMovement();
 
-        this.movement = request.direction;
         if (this.requestsQueue.length > 1)
         {
             // Sort the queue in ascending order
@@ -244,12 +257,40 @@ class Elevator
             // Automatically close door
             this.door.closeDoor();
         }
+        
+        // Automatically go idle temporarily if 0 requests or at the end of request
+        this.movement = "idle";
+    }
+    
+    // Get what should be the movement direction of the elevator for its upcoming request
+    getMovement()
+    {
+        let floorDifference = this.currentFloor - this.requestsQueue[0].floor;
+        if (floorDifference > 0)
+            this.movement = "down";
         else 
+            this.movement = "up";
+    }
+
+    // Check if elevator is at full capacity
+    checkWeight(currentWeightKG)
+    {
+        // currentWeightKG calculated thanks to weight sensors
+        if (currentWeightKG > this.maxWeightKG)
         {
-            // Automatically go to origin floor after certain period of inactivity (5 mins)
-            this.movement = "idle";
-            let wait = setTimeout(() => this.goToOrigin(), 10000); // Replace the milliseconds with 300000 to simulate 5 minutes of time
-            clearTimeout(wait);
+            this.door.openDoor();
+
+            // Display 10 warnings
+            for (let i = 0; i < 10; i++)
+            {
+                console.log(`\nALERT: Maximum weight capacity reached, please exit elevator ${this.id}`);
+            }
+
+            // Freeze elevator until weight goes back to normal
+            if (this.movement != "idle")
+                this.movement = "idle";
+
+            
         }
     }
 }
@@ -300,12 +341,12 @@ class FloorButton
     
     press()
     {
-        console.log(`\nYou're currently on floor ${this.elevator.currentFloor}, inside Elevator ${this.elevator.id}. You decide to go to floor ${this.floor}.`);
+        console.log(`\nFLOOR REQUEST`);
+        console.log(`Someone is currently on floor ${this.elevator.currentFloor}, inside Elevator ${this.elevator.id}. The person decides to go to floor ${this.floor}.`);
 
         this.isToggled = true;
         this.controlLight();
         
-        this.getDirection();
         this.sendRequest();
 
         this.isToggled = false;
@@ -321,21 +362,29 @@ class FloorButton
             this.isEmittingLight = false;
     }
 
-    // Get what is the direction of a new request
-    getDirection()
-    {
-        let floorDifference = this.elevator.currentFloor - this.floor;
-        if (floorDifference > 0)
-            this.direction = "down"
-        else 
-            this.direction = "up";
-    }
-
     // Send new request to its elevator 
     sendRequest()
     {
         let request = new Request(this.floor, this.direction);
         this.elevator.requestsQueue.push(request);
+    }
+}
+
+class FloorDisplay
+{
+    /* FIELDS */
+    elevator;
+
+    /* CONSTRUCTOR */
+    constructor(elevator)
+    {
+        this.elevator = elevator;
+    }
+
+    /* METHODS */
+    displayFloor()
+    {
+        console.log(`... Elevator ${this.elevator.id}'s current floor mid-travel: ${this.elevator.currentFloor} ...`);
     }
 }
 
@@ -361,7 +410,8 @@ class CallButton
     // Return elevator that was chosen, for further use
     press()
     {
-        console.log(`\nYou are on floor ${this.floor}. You decide to call an elevator.`);
+        console.log(`\nELEVATOR REQUEST`);
+        console.log(`Someone is on floor ${this.floor}. The person decides to call an elevator.`);
 
         this.isToggled = true;
         this.controlLight();
@@ -520,13 +570,14 @@ function Scenario1()
     column.elevatorList[0].changeProperties(2, null, "idle");
     column.elevatorList[1].changeProperties(6, null, "idle");
 
-    var chosenElevator = column.requestElevator(3, "up");
+    let chosenElevator = column.requestElevator(3, "up");
     column.requestFloor(chosenElevator, 7);
 }
 
 /*** SCENARIO 2 ***/
 function Scenario2()
 {
+    console.log("\n\n");
     console.log("**********************************************************************************************************************************");
     console.log("SCENARIO 2");
     console.log("**********************************************************************************************************************************");
@@ -534,22 +585,47 @@ function Scenario2()
     column.elevatorList[0].changeProperties(10, null, "idle");
     column.elevatorList[1].changeProperties(3, null, "idle");
 
-    var chosenElevator = column.requestElevator(1, "up");
+    let chosenElevator = column.requestElevator(1, "up");
     column.requestFloor(chosenElevator, 6);
 
-    console.log("=== 2 minutes later ===");
+    console.log("\n\n\n=== 2 MINUTES LATER ===\n\n");
 
     chosenElevator = column.requestElevator(3, "up");
     column.requestFloor(chosenElevator, 5);
 
-    console.log("=== After a bit more time ===");
+    console.log("\n\n\n=== AFTER A BIT MORE TIME ===\n\n");
 
     chosenElevator = column.requestElevator(9, "down");
     column.requestFloor(chosenElevator, 2);
+    
+}
+
+/*** SCENARIO 3 ***/
+function Scenario3()
+{
+    console.log("\n\n");
+    console.log("**********************************************************************************************************************************");
+    console.log("SCENARIO 3");
+    console.log("**********************************************************************************************************************************");
+
+    column.elevatorList[0].changeProperties(10, null, "idle");
+    column.elevatorList[1].changeProperties(3, 6, "up");
+
+    let chosenElevator = column.requestElevator(3, "down");
+
+    column.requestFloor(chosenElevator, 2);
+    column.requestFloor(column.elevatorList[1], 6);
+
+    console.log("\n\n\n=== 5 MINUTES LATER ===\n\n");
+
+    chosenElevator = column.requestElevator(10, "down");
+    column.requestFloor(chosenElevator, 3);
 }
 
 Scenario1();
-//Scenario2();
+Scenario2();
+Scenario3();
+
 
 
 
