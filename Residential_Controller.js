@@ -555,7 +555,7 @@ battery.monitorSystem();
 var column = battery.columnList[0];
 
 /*** SCENARIO 1 ***/
-function Scenario1()
+function scenario1()
 {
     console.log("**********************************************************************************************************************************");
     console.log("SCENARIO 1");
@@ -570,7 +570,7 @@ function Scenario1()
 }
 
 /*** SCENARIO 2 ***/
-function Scenario2()
+function scenario2()
 {
     console.log("\n\n");
     console.log("**********************************************************************************************************************************");
@@ -596,7 +596,7 @@ function Scenario2()
 }
 
 /*** SCENARIO 3 ***/
-function Scenario3()
+function scenario3()
 {
     console.log("\n\n");
     console.log("**********************************************************************************************************************************");
@@ -617,9 +617,9 @@ function Scenario3()
     column.requestFloor(chosenElevator, 3);
 }
 
-Scenario1();
-Scenario2();
-Scenario3();
+scenario1();
+scenario2();
+scenario3();
 
 
 
