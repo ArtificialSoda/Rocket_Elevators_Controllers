@@ -49,6 +49,7 @@ class Battery
             this.status = "offline";
             for (let column of this.columnList)
             {
+                column.status = "offline"
                 for (let elevator of column.elevatorList)
                 {
                     elevator.status = "offline";
@@ -65,7 +66,6 @@ class Column
 
     /* FIELDS */
     id;
-    numFloors = Elevator.numFloors;
     status = "online"; // offline|online
     elevatorList = [];
     upCallButtons = [];
@@ -93,7 +93,7 @@ class Column
     // Initialize all the call buttons, on each floor
     createCallButtons()
     {
-        for (let numFloor = 1; numFloor <= this.numFloors; numFloor++)
+        for (let numFloor = 1; numFloor <= Elevator.numFloors; numFloor++)
         {
             let upCallBtn = new CallButton(numFloor, "up", this);
             this.upCallButtons.push(upCallBtn);
@@ -201,6 +201,16 @@ class Elevator
         this.goToNextFloor();
     }
 
+    // Get what should be the movement direction of the elevator for its upcoming request
+    getMovement()
+    {
+        let floorDifference = this.currentFloor - this.requestsQueue[0].floor;
+        if (floorDifference > 0)
+            this.movement = "down";
+        else 
+            this.movement = "up";
+    }
+
     // Sort requests, for added efficiency
     sortRequestsQueue()
     {
@@ -257,40 +267,27 @@ class Elevator
             // Automatically close door
             this.door.closeDoor();
         }
-        
+
         // Automatically go idle temporarily if 0 requests or at the end of request
         this.movement = "idle";
     }
     
-    // Get what should be the movement direction of the elevator for its upcoming request
-    getMovement()
-    {
-        let floorDifference = this.currentFloor - this.requestsQueue[0].floor;
-        if (floorDifference > 0)
-            this.movement = "down";
-        else 
-            this.movement = "up";
-    }
-
     // Check if elevator is at full capacity
     checkWeight(currentWeightKG)
     {
         // currentWeightKG calculated thanks to weight sensors
         if (currentWeightKG > this.maxWeightKG)
         {
-            this.door.openDoor();
-
             // Display 10 warnings
             for (let i = 0; i < 10; i++)
             {
-                console.log(`\nALERT: Maximum weight capacity reached, please exit elevator ${this.id}`);
+                console.log(`\nALERT: Maximum weight capacity reached on Elevator ${this.id}`);
             }
 
             // Freeze elevator until weight goes back to normal
             if (this.movement != "idle")
                 this.movement = "idle";
-
-            
+            this.door.openDoor()
         }
     }
 }
@@ -308,13 +305,11 @@ class ElevatorDoor
 
     /* METHODS */
 
-    // Open the door of the elevator
     openDoor()
     {
         this.status = "opened";
     }
 
-    // Close the door of the elevator
     closeDoor()
     {
         this.status = "closed";
@@ -338,7 +333,7 @@ class FloorButton
     }
 
     /* METHODS */
-    
+
     press()
     {
         console.log(`\nFLOOR REQUEST`);
@@ -382,6 +377,8 @@ class FloorDisplay
     }
 
     /* METHODS */
+
+    // Displays current floor of elevator as it travels
     displayFloor()
     {
         console.log(`... Elevator ${this.elevator.id}'s current floor mid-travel: ${this.elevator.currentFloor} ...`);
@@ -443,7 +440,7 @@ class CallButton
         {
             // Initialize score to 0
             let score = 0;
-            let floorDifference = elevator.currentFloor - this.floor;
+            let floorDifference = Math.abs(elevator.currentFloor - this.floor);
 
             // Prevents use of any offline/under-maintenance elevators
             if (elevator.status != "online")
@@ -454,13 +451,12 @@ class CallButton
             else
             {
                 // Bonify score based on difference in floors
-                let absFloorDiff = Math.abs(floorDifference);
-                if (absFloorDiff == 0)
+                if (floorDifference == 0)
                     score += 5000;
                 else 
-                    score += 5000/(absFloorDiff + 1);
+                    score += 5000/(floorDifference + 1);
                 
-                // Bony score based on direction (highest priority)
+                // Bonify score based on direction (highest priority)
                 if (elevator.movement != "idle") 
                 {
                     if (floorDifference >= 0 && this.direction == "down" && elevator.movement == "down")
@@ -479,13 +475,11 @@ class CallButton
                         score = 0;
             
                         // Give redemption points, in worst case scenario where all elevators never cross paths
-                        let nextFloorDifference = elevator.nextFloor - this.floor;
-                        let absNextFloorDiff = Math.abs(nextFloorDifference);
-
-                        if (absNextFloorDiff == 0)
+                        let nextFloorDifference = Math.abs(elevator.nextFloor - this.floor);
+                        if (nextFloorDifference == 0)
                             score += 500;
                         else 
-                            score += 500/(absNextFloorDiff + 1);
+                            score += 500/(nextFloorDifference + 1);
                     }
                 }
 
@@ -567,6 +561,7 @@ function Scenario1()
     console.log("SCENARIO 1");
     console.log("**********************************************************************************************************************************");
 
+    console.log(column)
     column.elevatorList[0].changeProperties(2, null, "idle");
     column.elevatorList[1].changeProperties(6, null, "idle");
 
