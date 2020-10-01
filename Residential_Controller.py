@@ -27,7 +27,7 @@ class Battery:
     # Initialize the battery's collection of columns
     def create_column_list(self):
         for columnID in range(self.num_columns):
-            column = Column(columnID)
+            column = Column(columnID + 1)
             column.create_elevator_list()
             column.create_call_buttons()
 
@@ -64,26 +64,29 @@ class Column:
     def create_elevator_list(self):
         
         for elevatorID in range(self.num_elevators):
-            elevator = Elevator(elevatorID)
+            elevator = Elevator(elevatorID + 1)
+            elevator.create_floor_buttons()
             self.elevator_list.append(elevator)
     
     # Initialize all the call buttons, on each floor
     def create_call_buttons(self):
         
         for floor in range(Elevator.num_floors):
-            up_btn = CallButton(floor, "up", self)
+            
+            up_btn = CallButton(floor + 1, "up", self)
             self.up_call_buttons.append(up_btn)
+
+            down_btn = CallButton(floor + 1, "down", self)
+            self.down_call_buttons.append(down_btn)
     
     # Complete request that was sent to chosen elevator
     # Return chosen elevator, for further use
     def request_elevator(self, requested_floor, direction):
         if direction == "up":
-            index = [i for i in range(self.up_call_buttons) if self.up_call_buttons[i].floor == requested_floor][0]
-            call_btn_to_press = self.up_call_buttons[index]
+            call_btn_to_press  = [btn for btn in self.up_call_buttons if btn.floor == requested_floor][0]
         elif direction == "down":
-            index = [i for i in range(self.down_call_buttons) if self.down_call_buttons[i].floor == requested_floor][0]
-            call_btn_to_press = self.down_call_buttons[index]
-
+            call_btn_to_press  = [btn for btn in self.down_call_buttons if btn.floor == requested_floor][0]
+       
         chosen_elevator = call_btn_to_press.press()
         chosen_elevator.do_requests()
 
@@ -91,8 +94,7 @@ class Column:
     
     # Move chosen elevator to requested floor
     def request_floor(self, elevator, requested_floor):
-        index = [i for i in range(elevator.floor_buttons) if elevator.floor_buttons[i].floor == requested_floor][0]
-        floor_btn_to_press = elevator.floor_buttons[index]
+        floor_btn_to_press = [btn for btn in elevator.floor_buttons if btn.floor == requested_floor][0]
         
         floor_btn_to_press.press()
         elevator.do_requests()
@@ -127,12 +129,12 @@ class Elevator:
     # Create all floor buttons that should be inside the elevator
     def create_floor_buttons(self):
         for floor in range(self.num_floors):
-            button = FloorButton(floor, self)
+            button = FloorButton(floor + 1, self)
             self.floor_buttons.append(button)
 
     # Make elevator go to its scheduled next floor
     def go_to_next_floor(self):
-        print("Elevator {}, currently at floor {}, is about to go to floor {}".format(self.id, self.current_floor, self.next_floor))
+        print("Elevator {}, currently at floor {}, is about to go to floor {}...".format(self.id, self.current_floor, self.next_floor))
         print("=====================================================================")
 
         while (self.current_floor != self.next_floor):
@@ -145,7 +147,7 @@ class Elevator:
             self.floor_display.display_floor()
         
         print("======================================================================")
-        print("Elevator {} has reached its requested floor! It is now at floor {}".format(self.id, self.current_floor))
+        print("Elevator {} has reached its requested floor! It is now at floor {}.".format(self.id, self.current_floor))
 
     # Make elevator go to origin floor
     def go_to_origin(self):
@@ -185,7 +187,7 @@ class Elevator:
                 for request in self.requests_queue:
                     if request.floor > self.current_floor or request.direction != self.movement:
                         self.requests_queue.append(self.requests_queue.pop(request))
-    
+        
     # Complete the elevator requests
     def do_requests(self):
         if len(self.requests_queue) > 0:
@@ -204,9 +206,9 @@ class Elevator:
 
             # Automatically close the door
             self.door.close_door()
-        else:
-            # Automatically go idle if 0 requests or at the end of request
-            self.movement = "idle"
+            
+        # Automatically go idle if 0 requests or at the end of request
+        self.movement = "idle"
     
     # Check if elevator is at full capacity
     def check_weight(self, current_weight_kg):
@@ -251,7 +253,7 @@ class FloorButton:
     def press(self):
 
         print("\nFLOOR REQUEST")
-        print("Someone is currently on floor {}, inside Elevator {}. The person decides to go to floor {}".format(
+        print("Someone is currently on floor {}, inside Elevator {}. The person decides to go to floor {}.".format(
             self.elevator.current_floor,
             self.elevator.id,
             self.floor
@@ -286,7 +288,7 @@ class FloorDisplay:
 
     #Displays current floor of elevator as it travels
     def display_floor(self):
-        print("... Elevator {}'s current floor mid-travel: {}".format(self.elevator.id, self.elevator.currentFloor))
+        print("... Elevator {}'s current floor mid-travel: {} ...".format(self.elevator.id, self.elevator.current_floor))
 
 class CallButton:
     
@@ -303,7 +305,7 @@ class CallButton:
     def press(self):
         
         print("\nELEVATOR REQUEST")
-        print("Someone is on floor {}. The person decides to call an elevator.")
+        print("Someone is on floor {}. The person decides to call an elevator.".format(self.floor))
 
         self.is_toggled = True
         self.control_light()
@@ -331,7 +333,7 @@ class CallButton:
             
             # Initialize score to 0
             score = 0
-            floor_difference = abs(elevator.current_floor - self.floor)
+            floor_difference = elevator.current_floor - self.floor
 
             # Prevents use of any offline/under-maintenance elevators
             if (elevator.status != "online"):
@@ -340,13 +342,13 @@ class CallButton:
             else:
 
                 # Bonify score based on difference in floors
-                if (floor_difference == 0):
+                if floor_difference == 0:
                     score += 5000
                 else:
-                    score += 5000/(floor_difference + 1)
+                    score += 5000/(abs(floor_difference) + 1)
                 
                 # Bonify score based on direction (highest priority)
-                if (elevator.movement != "idle"):
+                if elevator.movement != "idle":
                     if (floor_difference >= 0 and self.direction == "down" and elevator.movement == "down"):
                         
                         # Paths are crossed going down, therefore favor this elevator
@@ -363,11 +365,11 @@ class CallButton:
                         score = 0
             
                         # Give redemption points, in worst case scenario where all elevators never cross paths
-                        next_floor_difference = abs(elevator.next_floor - self.floor)
-                        if (next_floor_difference == 0):
+                        next_floor_difference = elevator.next_floor - self.floor
+                        if next_floor_difference == 0:
                             score += 500
                         else:
-                            score += 500/(next_floor_difference + 1)
+                            score += 500/(abs(next_floor_difference) + 1)
                 
                 # Bonify score on request queue size (the smaller number of pre-existing requests, the faster therefore the better)
                 if len(elevator.requests_queue) <= 3:
@@ -420,7 +422,7 @@ battery.monitor_system()
 column = battery.column_list[0]
 
 ### SCENARIO 1 ###
-def scenario_1():
+def scenario1():
     print("**********************************************************************************************************************************")
     print("SCENARIO 1")
     print("**********************************************************************************************************************************")
@@ -431,9 +433,53 @@ def scenario_1():
     chosen_elevator = column.request_elevator(3, "up")
     column.request_floor(chosen_elevator, 7)
 
-scenario_1()
+### SCENARIO 2 ###
+def scenario2():
+    print("\n\n")
+    print("**********************************************************************************************************************************")
+    print("SCENARIO 2")
+    print("**********************************************************************************************************************************")
+
+    column.elevator_list[0].change_properties(10, None, "idle")
+    column.elevator_list[1].change_properties(3, None, "idle")
+
+    chosen_elevator = column.request_elevator(1, "up")
+    column.request_floor(chosen_elevator, 6)
+
+    print("\n\n\n=== 2 MINUTES LATER ===\n\n")
+
+    chosen_elevator = column.request_elevator(3, "up")
+    column.request_floor(chosen_elevator, 5)
+
+    print("\n\n\n=== AFTER A BIT MORE TIME ===\n\n")
+
+    chosen_elevator = column.request_elevator(9, "down")
+    column.request_floor(chosen_elevator, 2)
+
+### SCENARIO 3 ###
+def scenario3():
+    print("\n\n")
+    print("**********************************************************************************************************************************")
+    print("SCENARIO 3")
+    print("**********************************************************************************************************************************")
+
+    column.elevator_list[0].change_properties(10, None, "idle")
+    column.elevator_list[1].change_properties(3, 6, "up")
+
+    chosen_elevator = column.request_elevator(3, "down")
+
+    column.request_floor(chosen_elevator, 2)
+    column.request_floor(column.elevator_list[1], 6)
+
+    print("\n\n\n=== 5 MINUTES LATER ===\n\n")
+
+    chosen_elevator = column.request_elevator(10, "down")
+    column.request_floor(chosen_elevator, 3)
 
 
+scenario1()
+scenario2()
+scenario3()
 
     
 
