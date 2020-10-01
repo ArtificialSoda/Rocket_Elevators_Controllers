@@ -440,7 +440,7 @@ class CallButton
         {
             // Initialize score to 0
             let score = 0;
-            let floorDifference = Math.abs(elevator.currentFloor - this.floor);
+            let floorDifference = elevator.currentFloor - this.floor;
 
             // Prevents use of any offline/under-maintenance elevators
             if (elevator.status != "online")
@@ -454,7 +454,7 @@ class CallButton
                 if (floorDifference == 0)
                     score += 5000;
                 else 
-                    score += 5000/(floorDifference + 1);
+                    score += 5000/(Math.abs(floorDifference)+ 1);
                 
                 // Bonify score based on direction (highest priority)
                 if (elevator.movement != "idle") 
@@ -475,11 +475,11 @@ class CallButton
                         score = 0;
             
                         // Give redemption points, in worst case scenario where all elevators never cross paths
-                        let nextFloorDifference = Math.abs(elevator.nextFloor - this.floor);
+                        let nextFloorDifference = elevator.nextFloor - this.floor;
                         if (nextFloorDifference == 0)
                             score += 500;
                         else 
-                            score += 500/(nextFloorDifference + 1);
+                            score += 500/(Math.abs(nextFloorDifference) + 1);
                     }
                 }
 
@@ -561,7 +561,6 @@ function scenario1()
     console.log("SCENARIO 1");
     console.log("**********************************************************************************************************************************");
 
-    console.log(column)
     column.elevatorList[0].changeProperties(2, null, "idle");
     column.elevatorList[1].changeProperties(6, null, "idle");
 
