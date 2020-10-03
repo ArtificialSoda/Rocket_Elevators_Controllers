@@ -1,10 +1,15 @@
-import sys
 """
 /*****************************************************
     Author: Fabien H. Dimitrov
     Context: Codeboxx Week 2 (Odyssey)
 *****************************************************/
 """
+import os
+from sys import exit
+from time import sleep
+
+sleep_time = 1
+
 #################################################################################################################################################
 # OBJECT DEFINITIONS
 #################################################################################################################################################
@@ -36,14 +41,14 @@ class Battery:
     # Monitor the battery's elevator system
     # In real conditions, the monitoring would be done in a near-infinite while loop
     def monitor_system(self):
-        if (self.is_fire or self.is_power_outage or self.is_mechanical_failure):
+        if self.is_fire or self.is_power_outage or self.is_mechanical_failure:
             
             self.status = "offline"
             for column in self.column_list:
                 column.status = "offline"
                 for elevator in column.elevator_list:
                     elevator.status = "offline"
-            sys.exit("Battery {} has been shut down for maintenance. Sorry for the inconvenience".format(self.id))
+            exit("Battery {} has been shut down for maintenance. Sorry for the inconvenience".format(self.id))
 
 class Column:
     
@@ -139,9 +144,9 @@ class Elevator:
 
         while (self.current_floor != self.next_floor):
             
-            if (self.movement == "up"):
+            if self.movement == "up":
                 self.current_floor += 1
-            elif (self.movement == "down"):
+            elif self.movement == "down":
                 self.current_floor -= 1
             
             self.floor_display.display_floor()
@@ -196,7 +201,8 @@ class Elevator:
             request = self.requests_queue[0]
 
             # Go to requested floor
-            self.door.close_door()
+            if self.door.status != "closed":
+                self.door.close_door()
             self.next_floor = request.floor
             self.go_to_next_floor()
 
@@ -227,7 +233,6 @@ class Elevator:
 
 class ElevatorDoor:
 
-
     # INSTANCE VARIABLES
     def __init__(self, status):
         self.status = status
@@ -235,11 +240,16 @@ class ElevatorDoor:
     # METHODS
     def open_door(self):
         self.status = "opened"
+        print("Door has opened")
+        sleep(sleep_time)
     
     def close_door(self):
         self.status = "closed"
+        print("Door has closed")
+        sleep(sleep_time)
 
 class FloorButton:
+    
     # INSTANCE VARIABLES
     def __init__(self, floor, elevator):
         self.floor = floor
@@ -249,19 +259,21 @@ class FloorButton:
         self.is_emitting_light = False
     
     # METHODS
-    
     def press(self):
 
         print("\nFLOOR REQUEST")
+        sleep(sleep_time)
         print("Someone is currently on floor {}, inside Elevator {}. The person decides to go to floor {}.".format(
             self.elevator.current_floor,
             self.elevator.id,
             self.floor
         ))
+        sleep(sleep_time)
 
         self.is_toggled = True
         self.control_light()
 
+        self.get_direction()
         self.send_request()
 
         self.isToggled = False
@@ -269,10 +281,19 @@ class FloorButton:
     
     # Light up a pressed button
     def control_light(self):
-        if (self.is_toggled):
+        if self.is_toggled:
             self.is_emitting_light = True
         else:
             self.is_emitting_light = False
+    
+    # Get direction of request
+    def get_direction(self):
+
+        floor_difference = self.elevator.current_floor - self.floor
+        if floor_difference > 0:
+            self.direction = "down"
+        else:
+            self.direction = "up"
     
     # Send new request to its elevator
     def send_request(self):
@@ -288,6 +309,7 @@ class FloorDisplay:
 
     #Displays current floor of elevator as it travels
     def display_floor(self):
+        sleep(sleep_time)
         print("... Elevator {}'s current floor mid-travel: {} ...".format(self.elevator.id, self.elevator.current_floor))
 
 class CallButton:
@@ -305,7 +327,9 @@ class CallButton:
     def press(self):
         
         print("\nELEVATOR REQUEST")
-        print("Someone is on floor {}. The person decides to call an elevator.".format(self.floor))
+        sleep(sleep_time)
+        print("Someone is on floor {}, and wants to go {}. The person decides to call an elevator.".format(self.floor, self.direction))
+        sleep(sleep_time)
 
         self.is_toggled = True
         self.control_light()
@@ -351,17 +375,17 @@ class CallButton:
                 if elevator.movement != "idle":
                     if (floor_difference >= 0 and self.direction == "down" and elevator.movement == "down"):
                         
-                        # Paths are crossed going down, therefore favor this elevator
+                        # Paths are crossed going down, therefore favor self elevator
                         score += 10000
                     
                     elif (floor_difference <= 0 and self.direction == "up" and elevator.movement == "up"):
 
-                        # Paths are crossed going down, therefore favor this elevator
+                        # Paths are crossed going down, therefore favor self elevator
                         score += 10000
                     
                     else:
                         
-                        # Paths are not crossed, therefore try avoiding the use of this elevator
+                        # Paths are not crossed, therefore try avoiding the use of self elevator
                         score = 0
             
                         # Give redemption points, in worst case scenario where all elevators never cross paths
@@ -391,7 +415,7 @@ class CallButton:
         if (highest_score > -1):
             chosen_elevator = self.column.elevator_list[elevator_scores.index(highest_score)]
 
-        print("Chosen elevator's ID: {}".format(chosen_elevator.id))
+        print("Chosen elevator: Elevator {}".format(chosen_elevator.id))
         return chosen_elevator
 
     # Send new request to chosen elevator
@@ -426,19 +450,21 @@ def scenario1():
     print("**********************************************************************************************************************************")
     print("SCENARIO 1")
     print("**********************************************************************************************************************************")
+    sleep(sleep_time)
 
     column.elevator_list[0].change_properties(2, None, "idle")
     column.elevator_list[1].change_properties(6, None, "idle")
 
     chosen_elevator = column.request_elevator(3, "up")
     column.request_floor(chosen_elevator, 7)
+    sleep(sleep_time)
 
 ### SCENARIO 2 ###
 def scenario2():
-    print("\n\n")
     print("**********************************************************************************************************************************")
     print("SCENARIO 2")
     print("**********************************************************************************************************************************")
+    sleep(sleep_time)
 
     column.elevator_list[0].change_properties(10, None, "idle")
     column.elevator_list[1].change_properties(3, None, "idle")
@@ -455,13 +481,14 @@ def scenario2():
 
     chosen_elevator = column.request_elevator(9, "down")
     column.request_floor(chosen_elevator, 2)
+    sleep(sleep_time)
 
 ### SCENARIO 3 ###
 def scenario3():
-    print("\n\n")
     print("**********************************************************************************************************************************")
     print("SCENARIO 3")
     print("**********************************************************************************************************************************")
+    sleep(sleep_time)
 
     column.elevator_list[0].change_properties(10, None, "idle")
     column.elevator_list[1].change_properties(3, 6, "up")
@@ -475,11 +502,37 @@ def scenario3():
 
     chosen_elevator = column.request_elevator(10, "down")
     column.request_floor(chosen_elevator, 3)
+    sleep(sleep_time)
+
+### RUN THE SCENARIOS ### (USE THE TERMINAL ONLY)
+def run():
+    while True:
+        try:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            chosen_scenario = int(input("Hello! Choose which scenario you'd like to emulate [1, 2, 3]: "))
+            os.system('cls' if os.name == 'nt' else 'clear')
+        except ValueError:
+            continue
+        if chosen_scenario not in range(1, 4):
+            continue
+        else:
+            if (chosen_scenario == 1):
+                scenario1()
+            elif (chosen_scenario == 2):
+                scenario2()
+            else:
+                scenario3()
+
+            print("\n\n***** SCENARIO SUCCESSFULLY TESTED *****")
+            restart = input("Do you wish to re-run one of the scenarios? Type 'Y' if yes, or type anything else to exit the program: ")
+            if (restart.upper() == "Y"):
+                continue
+            break
+run()
 
 
-scenario1()
-scenario2()
-scenario3()
+
+
 
     
 
