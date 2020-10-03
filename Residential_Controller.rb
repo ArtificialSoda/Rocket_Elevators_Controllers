@@ -3,6 +3,8 @@
 #   Context Codeboxx Week 2 (Odyssey)
 # ****************************************************\
 
+$sleep_time = 1
+
 #################################################################################################################################################
 # OBJECT DEFINITIONS
 #################################################################################################################################################
@@ -244,7 +246,6 @@ class Elevator
             request = @requests_queue[0]
 
             # Go to requested floor
-            @door.close_door()
             @next_floor = request.floor
             go_to_next_floor()
 
@@ -291,10 +292,14 @@ class ElevatorDoor
     # METHODS
     def open_door
         @status = "opened"
+        puts "Door has opened"
+        sleep($sleep_time)
     end
     
     def close_door
         @status = "closed"
+        puts "Door has closed"
+        sleep($sleep_time)
     end
 end
 
@@ -316,11 +321,14 @@ class FloorButton
     def press
 
         puts "\nFLOOR REQUEST"
+        sleep($sleep_time)
         puts "Someone is currently on floor #{@elevator.current_floor}, inside Elevator #{@elevator.id}. The person decides to go to floor #{@floor}."
+        sleep($sleep_time)
 
         @is_toggled = true
         control_light()
 
+        get_direction()
         send_request()
 
         @isToggled = false
@@ -333,6 +341,17 @@ class FloorButton
             @is_emitting_light = true
         else
             @is_emitting_light = false
+        end
+    end
+
+    # Get direction of request
+    def get_direction()
+
+        floor_difference = @elevator.current_floor - @floor
+        if floor_difference > 0
+            @direction = "down"
+        else
+            @direction = "up"
         end
     end
     
@@ -353,6 +372,7 @@ class FloorDisplay
     #METHODS
     #Displays current floor of elevator as it travels
     def display_floor
+        sleep($sleep_time)
         puts "... Elevator #{@elevator.id}'s current floor mid-travel #{@elevator.current_floor} ..."
     end
 end
@@ -375,7 +395,9 @@ class CallButton
     def press
         
         puts "\nELEVATOR REQUEST"
-        puts "Someone is on floor #{@floor}. The person decides to call an elevator."
+        sleep($sleep_time)
+        puts "Someone is on floor #{@floor}, and wants to go #{@direction}. The person decides to call an elevator."
+        sleep($sleep_time)
 
         @is_toggled = true
         control_light()
@@ -474,7 +496,7 @@ class CallButton
             chosen_elevator = @column.elevator_list[elevator_scores.find_index(highest_score)]
         end
 
-        puts "Chosen elevator's ID: #{chosen_elevator.id}"
+        puts "Chosen elevator: Elevator #{chosen_elevator.id}"
         return chosen_elevator
     end
 
@@ -510,21 +532,22 @@ battery = Battery.new(1)
 battery.create_column_list()
 battery.monitor_system()
 
-
 # Set placeholder for column used in test scenario
-column = battery.column_list[0]
+$column = battery.column_list[0]
 
 ### SCENARIO 1 ###
 def scenario1(column)
     puts "**********************************************************************************************************************************"
     puts "SCENARIO 1"
     puts "**********************************************************************************************************************************"
+    sleep($sleep_time)
 
     column.elevator_list[0].change_properties(2, nil, "idle")
     column.elevator_list[1].change_properties(6, nil, "idle")
 
     chosen_elevator = column.request_elevator(3, "up")
     column.request_floor(chosen_elevator, 7)
+    sleep($sleep_time)
 end
 
 ### SCENARIO 2 ###
@@ -533,11 +556,14 @@ def scenario2(column)
     puts "**********************************************************************************************************************************"
     puts "SCENARIO 2"
     puts "**********************************************************************************************************************************"
+    sleep($sleep_time)
+
     column.elevator_list[0].change_properties(10, nil, "idle")
     column.elevator_list[1].change_properties(3, nil, "idle")
 
     chosen_elevator = column.request_elevator(1, "up")
     column.request_floor(chosen_elevator, 6)
+    sleep($sleep_time)
 
     puts "\n\n\n=== 2 MINUTES LATER ===\n\n"
 
@@ -548,6 +574,7 @@ def scenario2(column)
 
     chosen_elevator = column.request_elevator(9, "down")
     column.request_floor(chosen_elevator, 2)
+    sleep($sleep_time)
 end
 
 ### SCENARIO 3 ###
@@ -556,6 +583,7 @@ def scenario3(column)
     puts "**********************************************************************************************************************************"
     puts "SCENARIO 3"
     puts "**********************************************************************************************************************************"
+    sleep($sleep_time)
 
     column.elevator_list[0].change_properties(10, nil, "idle")
     column.elevator_list[1].change_properties(3, 6, "up")
@@ -569,8 +597,34 @@ def scenario3(column)
 
     chosen_elevator = column.request_elevator(10, "down")
     column.request_floor(chosen_elevator, 3)
+    sleep($sleep_time)
 end
 
-scenario1(column)
-scenario2(column)
-scenario3(column)
+### RUN THE SCENARIOS ### (USE THE TERMINAL ONLY)
+def run
+    while true
+        system("clear") || system("cls")
+        puts "Hello! Choose which scenario you'd like to emulate [1, 2, 3]: "
+        chosen_scenario = gets.chomp
+        system("clear") || system("cls")
+
+        if chosen_scenario == "1"
+            scenario1($column)
+        elsif chosen_scenario == "2"
+            scenario2($column)
+        elsif chosen_scenario == "3"
+            scenario3($column)
+        else
+            next 
+        end
+
+        puts "\n\n***** SCENARIO SUCCESSFULLY TESTED *****"
+        puts "Do you wish to re-run one of the scenarios? Type 'Y' if yes, or type anything else to exit the program: "
+        restart = gets.chomp
+        if (restart.upcase() == "Y")
+            next
+        end
+        break
+    end
+end
+run()
