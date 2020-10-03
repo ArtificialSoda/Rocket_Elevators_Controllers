@@ -7,6 +7,15 @@
 ~OBJECT DEFINITIONS~
 ****************************************************************************************************************************************************/
 'use strict'
+var prompt = require('prompt-sync')();
+
+// Sleeper function - delays execution
+function sleep(milliseconds = 1000)
+{
+    let start = new Date().getTime();
+    while ((new Date().getTime() - start) < milliseconds)
+        continue;
+}
 
 class Battery 
 {
@@ -55,7 +64,12 @@ class Battery
                     elevator.status = "offline";
                 }
             }
-            throw new Error(`Battery ${this.id} has been shut down for maintenance. Sorry for the inconvenience.`);
+            
+            // Stop execution of script (the infinite while loop is voluntary)
+            console.log(`Battery ${this.id} has been shut down for maintenance. Sorry for the inconvenience.`);
+            console.log('Restart the script because you are now inside an infinite while loop that has halted the program');
+            while (true)
+                continue;
         }
     }
 
@@ -256,7 +270,8 @@ class Elevator
             let requestToComplete = this.requestsQueue[0];
 
             // Go to requested floor
-            this.door.closeDoor();
+            if (this.door.status != "closed")
+                this.door.closeDoor();
             this.nextFloor = requestToComplete.floor;
             this.goToNextFloor();
 
@@ -308,11 +323,15 @@ class ElevatorDoor
     openDoor()
     {
         this.status = "opened";
+        console.log("Door has opened");
+        sleep();
     }
 
     closeDoor()
     {
         this.status = "closed";
+        console.log("Door has closed");
+        sleep();
     }
 }
 
@@ -337,11 +356,14 @@ class FloorButton
     press()
     {
         console.log(`\nFLOOR REQUEST`);
+        sleep();
         console.log(`Someone is currently on floor ${this.elevator.currentFloor}, inside Elevator ${this.elevator.id}. The person decides to go to floor ${this.floor}.`);
+        sleep();
 
         this.isToggled = true;
         this.controlLight();
         
+        this.getDirection();
         this.sendRequest();
 
         this.isToggled = false;
@@ -356,6 +378,17 @@ class FloorButton
         else 
             this.isEmittingLight = false;
     }
+
+    // Get direction of request
+    getDirection()
+    {
+        let floorDifference = this.elevator.currentFloor - this.floor;
+        if (floorDifference > 0)
+            this.direction = "down";
+        else 
+            this.direction = "up";
+    }
+
 
     // Send new request to its elevator 
     sendRequest()
@@ -381,6 +414,7 @@ class FloorDisplay
     // Displays current floor of elevator as it travels
     displayFloor()
     {
+        sleep();
         console.log(`... Elevator ${this.elevator.id}'s current floor mid-travel: ${this.elevator.currentFloor} ...`);
     }
 }
@@ -408,7 +442,9 @@ class CallButton
     press()
     {
         console.log(`\nELEVATOR REQUEST`);
-        console.log(`Someone is on floor ${this.floor}. The person decides to call an elevator.`);
+        sleep();
+        console.log(`Someone is on floor ${this.floor}, and wants to go ${this.direction}. The person decides to call an elevator.`);
+        sleep();
 
         this.isToggled = true;
         this.controlLight();
@@ -508,10 +544,8 @@ class CallButton
         if (highestScore > -1)
             chosenElevator = this.column.elevatorList[elevatorScores.indexOf(highestScore)];
         
-        console.log(`Chosen elevator's ID: ${chosenElevator.id}`);
+        console.log(`Chosen elevator: Elevator ${chosenElevator.id}`);
         return chosenElevator;
-
-
     }
 
     // Send new request to chosen elevator 
@@ -560,21 +594,23 @@ function scenario1()
     console.log("**********************************************************************************************************************************");
     console.log("SCENARIO 1");
     console.log("**********************************************************************************************************************************");
+    sleep();
 
     column.elevatorList[0].changeProperties(2, null, "idle");
     column.elevatorList[1].changeProperties(6, null, "idle");
 
     let chosenElevator = column.requestElevator(3, "up");
     column.requestFloor(chosenElevator, 7);
+    sleep();
 }
 
 /*** SCENARIO 2 ***/
 function scenario2()
 {
-    console.log("\n\n");
     console.log("**********************************************************************************************************************************");
     console.log("SCENARIO 2");
     console.log("**********************************************************************************************************************************");
+    sleep();
 
     column.elevatorList[0].changeProperties(10, null, "idle");
     column.elevatorList[1].changeProperties(3, null, "idle");
@@ -591,16 +627,16 @@ function scenario2()
 
     chosenElevator = column.requestElevator(9, "down");
     column.requestFloor(chosenElevator, 2);
-    
+    sleep(); 
 }
 
 /*** SCENARIO 3 ***/
 function scenario3()
 {
-    console.log("\n\n");
     console.log("**********************************************************************************************************************************");
     console.log("SCENARIO 3");
     console.log("**********************************************************************************************************************************");
+    sleep();
 
     column.elevatorList[0].changeProperties(10, null, "idle");
     column.elevatorList[1].changeProperties(3, 6, "up");
@@ -614,11 +650,46 @@ function scenario3()
 
     chosenElevator = column.requestElevator(10, "down");
     column.requestFloor(chosenElevator, 3);
+    sleep();
 }
 
-scenario1();
-scenario2();
-scenario3();
+
+/*** RUN THE SCENARIOS (USE TERMINAL ONLY) ***/
+function run()
+{
+    while (true)
+    {
+        console.clear();
+        var chosenScenario = prompt("Hello! Choose which scenario you'd like to emulate [1, 2, 3]: ");
+        console.clear();
+
+        if (Number.isNaN(chosenScenario))
+            continue;
+
+        else
+        {
+            if (chosenScenario == 1)
+                scenario1();
+
+            else if (chosenScenario == 2)
+                scenario2();
+
+            else if (chosenScenario == 3)
+                scenario3();
+            
+            else
+                continue;
+            
+            console.log("\n\n***** SCENARIO SUCCESSFULLY TESTED *****");
+            var restart = prompt("Do you wish to re-run one of the scenarios? Type 'Y' if yes, or type anything else to exit the program: ");
+            if (restart.toUpperCase() == "Y")
+                continue;
+            break;
+        }
+    }
+}
+run();
+
 
 
 
