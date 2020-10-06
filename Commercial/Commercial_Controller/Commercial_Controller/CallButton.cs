@@ -58,20 +58,27 @@ namespace Commercial_Controller
         // Send request to chosen elevator + return its value for further use. 
         public Elevator Press()
         {
-            WriteLine("\nELEVATOR REQUEST");
+
+            WriteLine("\nELEVATOR REQUEST - FROM A CALL BUTTON");
             Sleep(Program.SLEEP_TIME);
-            WriteLine($"Someone is on floor {Floor} and will now have to go to floor {REQUESTED_FLOOR}. This person decides to call an elevator.");
+
+            if (Floor > 1)
+                WriteLine($"Someone is on floor {Floor} and will now have to go to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
+            else
+                WriteLine($"Someone is on floor B{Math.Abs(Floor)} (floor {Floor}) and will now have to go to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
             Sleep(Program.SLEEP_TIME);
 
             _isToggled = true;
             ControlLight();
-            SetDirection();
-
+          
             var chosenElevator = ChooseElevator();
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
+            {
+                SetDirection(chosenElevator);
                 SendRequest(chosenElevator);
+            }
 
             _isToggled = false;
             ControlLight();
@@ -88,11 +95,11 @@ namespace Commercial_Controller
                 _isEmittingLight = false;
         }
 
-        // Set what is the direction when requesting an elevator
-        public void SetDirection()
+        // Set what is the direction of the request when requesting an elevator to pick you up from a floor
+        public void SetDirection(Elevator elevator)
         {
-            int originDifference = Elevator.OriginFloor - Floor;
-            Direction = (originDifference > 0) ? "up" : "down";
+            int floorDifference = elevator.CurrentFloor - Floor;
+            Direction = (floorDifference > 0) ? "down" : "up";
         }
 
         // Choose which elevator should be called
@@ -146,8 +153,14 @@ namespace Commercial_Controller
                             // Paths are not crossed, therefore try avoiding the use of this elevator
                             score = 0;
 
+                            // Calculate next floor difference differently based on whether or not elevator's next floor will be at RC or not
+                            int nextFloorDifference;
+                            if (elevator.NextFloor != Elevator.OriginFloor)
+                                nextFloorDifference = elevator.NextFloor - Floor;
+                            else
+                                nextFloorDifference = Column.LowestFloor - Floor;
+
                             // Give redemption points, in worst case scenario where all elevators never cross paths
-                            int nextFloorDifference = (int)(elevator.NextFloor - Floor);
                             if (nextFloorDifference == 0)
                                 score += 500;
                             else

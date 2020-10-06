@@ -7,64 +7,86 @@ namespace Commercial_Controller
     class Elevator
     {
         #region STATIC FIELDS
-        public static int OriginFloor = 1;
+        private static int _originFloor = 1;
+        #endregion
+
+        #region STATIC PROPERTIES
+        public static int OriginFloor
+        {
+            get { return _originFloor; }
+            set
+            {
+                if (value != 1)
+                    throw new Exception("Invalid value. The RC (origin) floor should always be at floor 1.");
+                else
+                    _originFloor = value;
+            }
+        }
+        #endregion
+
+        #region FIELDS
+        private string _status;
+        private string _movement;
+        private int _maxWeightKG;
+        private int _currentFloor;
+        private int _nextFloor;
         #endregion
 
         #region PROPERTIES
         public int ID { get; private set; }
         public string Status 
         {
-            get { return Status; }
+            get { return _status; }
             set
             {
-                if (value.ToLower() != "online" || value.ToLower() != "offline")
+                if (value.ToLower() != "online" && value.ToLower() != "offline")
                     throw new Exception("Invalid value for elevator's status. Can only be either 'online' or 'offline'.");
                 else
-                    Status = value;
+                    _status = value;
             }
         }
         public string Movement
         {
-            get { return Movement; }
+            get { return _movement; }
             set
             {
-                if (value.ToLower() != "up" || value.ToLower() != "down" || value.ToLower() != "idle")
+                if (value.ToLower() != "up" && value.ToLower() != "down" && value.ToLower() != "idle")
                     throw new Exception("Invalid value for elevator's movement. Can only be either 'up', 'down', or 'idle'.");
                 else
-                    Movement = value;
+                    _movement = value;
             }
         }
         public int MaxWeightKG
         {
-            get { return MaxWeightKG; }
+            get { return _maxWeightKG; }
             private set
             {
                 if (value <= 0)
                     throw new Exception("Invalid max weight limit for elevators. Can't be 0kg or lower.");
                 else
-                    MaxWeightKG = value;
+                    _maxWeightKG = value;
             }
         }
         public int CurrentFloor 
         {
-            get { return CurrentFloor; }
+            get { return _currentFloor; }
             set
             {
                 if (value > Battery.NumFloors || value < -(Battery.NumBasements))
                     throw new Exception("The current floor value provided for the elevator is invalid.");
                 else
-                    CurrentFloor = value;
+                    _currentFloor = value;
             }
         }
         public int NextFloor 
         {
-            get { return NextFloor; }
+            get { return _nextFloor; }
             set
             {
                 if (value > Battery.NumFloors || value < -(Battery.NumBasements))
                     throw new Exception("The current floor value provided for the elevator is invalid.");
                 else
-                    NextFloor = value;
+                    _nextFloor = value;
             }
         }
 
@@ -117,7 +139,7 @@ namespace Commercial_Controller
         public void GoToOrigin()
         {
             NextFloor = OriginFloor;
-            WriteLine($"Elevator {ID} of Column {Column.ID} going back to origin...");
+            WriteLine($"Elevator {ID} of Column {Column.ID} going back to RC (floor {Elevator.OriginFloor})...");
             GoToNextFloor();
         }
 

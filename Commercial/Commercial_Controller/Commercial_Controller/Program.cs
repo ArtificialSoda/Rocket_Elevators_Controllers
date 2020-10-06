@@ -11,9 +11,23 @@ namespace Commercial_Controller
 
         static void Main(string[] args)
         {
-            
-            WriteLine("Hello World!");
-            ElevatorDoor.Status;
+            // Variables
+            Battery.NumColumns = 4;
+            Battery.NumFloors = 60;
+            Battery.NumBasements = 6;
+            Column.NumElevators = 5;
+
+            // Instantiate the batteries, the columns and the elevators
+            var battery = new Battery(1);
+            battery.CreateColumnList();
+            battery.CreateBoardButtons();
+            WriteLine(battery.BoardButtonList.Count);
+            WriteLine(battery.BoardButtonList[6].RequestedFloor);
+            battery.MonitorSystem();
+        }
+        static void Scenario1()
+        {
+
         }
     }
 }
