@@ -26,7 +26,7 @@ namespace Commercial_Controller
             get { return _direction; }
             private set
             {
-                if (value.ToLower() != "up" || value.ToLower() != "down")
+                if (value.ToLower() != "up" && value.ToLower() != "down")
                     throw new Exception("The direction provided for the request is invalid. It can only be 'up' or 'down'.");
                 else
                     _direction = value;

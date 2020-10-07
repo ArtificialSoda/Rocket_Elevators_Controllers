@@ -92,10 +92,14 @@ namespace Commercial_Controller
         // Initialize all the call buttons, on each floor
         public void CreateCallButtons()
         {
+
             for (int numFloor = LowestFloor; numFloor <= HighestFloor; numFloor++)
             {
-                var callBtn = new CallButton(numFloor, this);
-                CallButtonsList.Add(callBtn);
+                if (numFloor != 0)
+                {
+                    var callBtn = new CallButton(numFloor, this);
+                    CallButtonsList.Add(callBtn);
+                }
             }
         }
 

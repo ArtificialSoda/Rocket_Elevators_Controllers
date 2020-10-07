@@ -28,8 +28,8 @@ namespace Commercial_Controller
             get { return _numBasements; }
             set
             {
-                if (value <= 0)
-                    throw new Exception("There has to be more than 0 basements.");
+                if (value < 0)
+                    throw new Exception("There has to be 0 or more basements.");
                 else
                     _numBasements = value;
             }
@@ -93,16 +93,46 @@ namespace Commercial_Controller
         #endregion
 
         #region METHODS
+        // Run all initialiazing/startup Battery methods
+        public void Run()
+        {
+            CreateColumnList();
+            CreateBoardButtons();
+        }
+
         // Initialize the battery's collection of columns
         public void CreateColumnList()
         {
             for (int columnID = 1; columnID <= NumColumns; columnID++)
             {
                 var column = new Column(columnID);
+      
+                // Set up allowed floor ranges
+                if (NumBasements > 0)
+                {
+                    if (columnID == 1)
+                    {
+                        // Column takes care of basement floors
+                        column.LowestFloor = -(NumBasements);
+                        column.HighestFloor = -1;
+                    }
+                    else
+                    {
+                        // Column takes care of above-ground floors
+                        column.LowestFloor = 1 + NumFloors / (NumColumns - 1) * (columnID - 2);
+                        column.HighestFloor = NumFloors / (NumColumns - 1) * (columnID - 1);
+                    }
+                }
+                else
+                {
+                    // No basement floors - therefore all floors are above-ground
+                    column.LowestFloor = 1 + NumFloors / NumColumns * (columnID - 1);
+                    column.HighestFloor = NumFloors / NumColumns * columnID;
+                }
+
                 column.CreateElevatorList();
                 column.CreateCallButtons();
-
-               ColumnList.Add(column);
+                ColumnList.Add(column);
             }
         }
 
@@ -153,8 +183,8 @@ namespace Commercial_Controller
             var boardBtnToPress = BoardButtonList.Find(btn => btn.RequestedFloor == requestedFloor);
             Elevator chosenElevator = boardBtnToPress.Press();
 
-            // Do requests until elevator has reached the floor where the call was made
-            while (chosenElevator.CurrentFloor != boardBtnToPress.Floor)
+            // Do requests until elevator has reached the floor where the call was made (RC floor)
+            while (chosenElevator.CurrentFloor != Elevator.OriginFloor)
                 chosenElevator.DoRequests();
 
             // Set a request for the elevator to go to requested floor, once picked up

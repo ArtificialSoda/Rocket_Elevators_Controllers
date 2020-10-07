@@ -112,27 +112,64 @@ namespace Commercial_Controller
 
         #region METHODS
         // Change properties of elevator in one line - USE ONLY FOR TESTING
-        public void ChangeProperties(int newCurrentFloor, int newNextFloor, string newMovement)
+        public void ChangeProperties(int newCurrentFloor, int newNextFloor)
         {
             CurrentFloor = newCurrentFloor;
             NextFloor = newNextFloor;
-            Movement = newMovement;
+
+            if (CurrentFloor > NextFloor)
+                Movement = "down";
+            else
+            {
+                Movement = "up";
+                RequestsQueue.Add(new Request(NextFloor, Movement));
+            }
         }
-        
+        public void ChangeProperties(int newCurrentFloor)
+        {
+            CurrentFloor = newCurrentFloor;
+            Movement = "idle";
+        }
+
         // Make elevator go to its scheduled next floor
         public void GoToNextFloor()
         {
-            WriteLine($"Elevator {ID} of Column {Column.ID}, currently at floor {CurrentFloor}, is about to go to floor {NextFloor}...");
-            WriteLine("=================================================================");
-
-            while (CurrentFloor != NextFloor)
+            if (CurrentFloor != NextFloor)
             {
-                CurrentFloor = (Movement.ToLower() == "up") ? CurrentFloor++ : CurrentFloor--;
-                FloorDisplay.DisplayFloor();
-            }
+                if (CurrentFloor > 0)
+                    WriteLine($"Elevator {ID} of Column {Column.ID}, currently at floor {CurrentFloor}, is about to go to floor {NextFloor}...");
+                else if (NextFloor < 0)
+                    WriteLine($"Elevator {ID} of Column {Column.ID}, currently at floor B{Math.Abs(CurrentFloor)}, is about to go to floor B{Math.Abs(NextFloor)}...");
+                else if (NextFloor > 0)
+                    WriteLine($"Elevator {ID} of Column {Column.ID}, currently at floor B{Math.Abs(CurrentFloor)}, is about to go to floor {NextFloor}...");
+                WriteLine("=================================================================");
 
-            WriteLine("=================================================================");
-            WriteLine($"Elevator {ID} of Column {Column.ID} has reached its requested floor! It is now at floor {CurrentFloor}");
+                FloorDisplay.DisplayFloor();
+                while (CurrentFloor != NextFloor)
+                {
+                    if (Movement.ToLower() == "up")
+                    {
+                        if (CurrentFloor + 1 < Column.LowestFloor)
+                            CurrentFloor = Column.LowestFloor;
+                        else
+                            CurrentFloor++;
+                    }
+                    else
+                    {
+                        if (CurrentFloor - 1 < Column.LowestFloor)
+                            CurrentFloor = OriginFloor;
+                        else
+                            CurrentFloor--;
+                    }
+                    FloorDisplay.DisplayFloor();
+                }
+
+                WriteLine("=================================================================");
+                if (CurrentFloor > 0)
+                    WriteLine($"Elevator {ID} of Column {Column.ID} has reached its requested floor! It is now at floor {CurrentFloor}");
+                else
+                    WriteLine($"Elevator {ID} of Column {Column.ID} has reached its requested floor! It is now at floor B{Math.Abs(CurrentFloor)}");
+            }
         }
 
         // Make elevator go to origin floor

@@ -35,7 +35,7 @@ namespace Commercial_Controller
             get { return _direction; }
             private set
             {
-                if (value.ToLower() != "up" || value.ToLower() != "down")
+                if (value.ToLower() != "up" && value.ToLower() != "down")
                     throw new Exception("The direction provided for the call button is invalid. It can only be 'up' or 'down'.");
                 else
                     _direction = value;
@@ -58,14 +58,15 @@ namespace Commercial_Controller
         // Send request to chosen elevator + return its value for further use. 
         public Elevator Press()
         {
+            SetDirection();
 
             WriteLine("\nELEVATOR REQUEST - FROM A CALL BUTTON");
             Sleep(Program.SLEEP_TIME);
 
             if (Floor > 1)
-                WriteLine($"Someone is on floor {Floor} and will now have to go to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
+                WriteLine($"Someone is on floor {Floor} and will now have to go {Direction} to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
             else
-                WriteLine($"Someone is on floor B{Math.Abs(Floor)} (floor {Floor}) and will now have to go to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
+                WriteLine($"Someone is on floor B{Math.Abs(Floor)} (floor {Floor}) and will now have to go {Direction} to RC (floor {Elevator.OriginFloor}). This person decides to call an elevator.");
             Sleep(Program.SLEEP_TIME);
 
             _isToggled = true;
@@ -75,15 +76,21 @@ namespace Commercial_Controller
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
-            {
-                SetDirection(chosenElevator);
                 SendRequest(chosenElevator);
-            }
 
             _isToggled = false;
             ControlLight();
 
             return chosenElevator;
+        }
+
+        // Set what is the direction of the request when requesting an elevator to pick you up from a floor
+        public void SetDirection()
+        {
+            if (Floor > 1)
+                Direction = "down";
+            else
+                Direction = "up";
         }
 
         // Light up a pressed button
@@ -93,13 +100,6 @@ namespace Commercial_Controller
                 _isEmittingLight = true;
             else
                 _isEmittingLight = false;
-        }
-
-        // Set what is the direction of the request when requesting an elevator to pick you up from a floor
-        public void SetDirection(Elevator elevator)
-        {
-            int floorDifference = elevator.CurrentFloor - Floor;
-            Direction = (floorDifference > 0) ? "down" : "up";
         }
 
         // Choose which elevator should be called
@@ -116,7 +116,7 @@ namespace Commercial_Controller
                 // Remember: Each column has a floor range that its elevators must respect. The RC is not included in the range, so to make the calculations fair, if elevator is already at RC the floor difference will still look normal thanks to the 2nd calculation option as it will start from the column's lowest floor instead of at RC.
                 int floorDifference;
 
-                if (elevator.CurrentFloor != 1)
+                if (elevator.CurrentFloor != Elevator.OriginFloor)
                     floorDifference = elevator.CurrentFloor - Floor;
                 else
                     floorDifference = Column.LowestFloor - Floor;
@@ -195,7 +195,7 @@ namespace Commercial_Controller
                 int index = elevatorScores.FindIndex(score => score == highestScore);
                 chosenElevator = Column.ElevatorList[index];
 
-                WriteLine($"Chosen elevator of Column {Column.ID}: Elevator ${chosenElevator.ID}");
+                WriteLine($"Chosen elevator of Column {Column.ID}: Elevator {chosenElevator.ID}\n");
             }
             return chosenElevator;
         }

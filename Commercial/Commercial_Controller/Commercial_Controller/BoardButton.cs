@@ -20,17 +20,6 @@ namespace Commercial_Controller
         #endregion
 
         #region PROPERTIES
-        public int Floor
-        {
-            get { return _floor; }
-            private set
-            {
-                if (value != Elevator.OriginFloor)
-                    throw new Exception("Invalid floor value. Board buttons should always be on the ground floor.");
-                else
-                    _floor = value;
-            }
-        }
         public int RequestedFloor
         {
             get { return _requestedFloor; }
@@ -47,7 +36,7 @@ namespace Commercial_Controller
             get { return _direction; }
             private set
             {
-                if (value.ToLower() != "up" || value.ToLower() != "down")
+                if (value.ToLower() != "up" && value.ToLower() != "down")
                     throw new Exception("The direction provided for the board button is invalid. It can only be 'up' or 'down'.");
                 else
                     _direction = value;
@@ -70,13 +59,15 @@ namespace Commercial_Controller
         // Send request to chosen elevator + return its value for further use. 
         public Elevator Press()
         {
+            SetDirection();
+
             WriteLine("\nELEVATOR REQUEST - FROM A BOARD BUTTON");
             Sleep(Program.SLEEP_TIME);
 
             if (RequestedFloor > 1)
-                WriteLine($"Someone is at RC (floor {Floor}) and wants to go to floor {RequestedFloor}. This person decides to call an elevator.");
+                WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to floor {RequestedFloor}. This person decides to call an elevator.");
             else
-                WriteLine($"Someone is at RC (floor {Floor}) and wants to go to B{Math.Abs(RequestedFloor)} (floor {RequestedFloor}). This person decides to call an elevator.");
+                WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to B{Math.Abs(RequestedFloor)} (floor {RequestedFloor}). This person decides to call an elevator.");
             Sleep(Program.SLEEP_TIME);
 
             _isToggled = true;
@@ -86,10 +77,7 @@ namespace Commercial_Controller
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
-            {
-                SetDirection(chosenElevator);
                 SendRequest(chosenElevator);
-            }
 
             _isToggled = false;
             ControlLight();
@@ -107,10 +95,10 @@ namespace Commercial_Controller
         }
 
         // Set what is the direction of the request when requesting an elevator to pick you up from RC
-        public void SetDirection(Elevator elevator)
+        public void SetDirection()
         {
-            int floorDifference =  elevator.CurrentFloor - Floor;
-            Direction = (floorDifference > 0) ? "down" : "up";
+            int floorDifference =  RequestedFloor - _floor;
+            Direction = (floorDifference > 0) ? "up" : "down";
         }
 
         // Choose which column to go to, based on the requested floor
@@ -143,9 +131,9 @@ namespace Commercial_Controller
                 int floorDifference;
 
                 if (elevator.CurrentFloor != Elevator.OriginFloor)
-                    floorDifference = elevator.CurrentFloor - RequestedFloor;
+                    floorDifference = elevator.CurrentFloor - chosenColumn.LowestFloor;
                 else
-                    floorDifference = chosenColumn.LowestFloor - RequestedFloor;
+                    floorDifference = elevator.CurrentFloor - Elevator.OriginFloor;
 
                 // Prevents use of any offline/under-maintenance elevators
                 if (elevator.Status != "online")
@@ -164,28 +152,28 @@ namespace Commercial_Controller
                     // Bonify score based on direction (highest priority)
                     if (elevator.Movement != "idle")
                     {
-
-                        if (floorDifference >= 0 && Direction == "down" && elevator.Movement == "down")
-                        {
-                            // Paths are crossed, therefore favor that elevator;
-                            score += 1000;
-                        }
-                        else if (floorDifference <= 0 && Direction == "up" && elevator.Movement == "up")
-                        {
-                            // Paths are crossed, therefore favor that elevator;
-                            score += 1000;
-                        }
-                        else
+               
+                        if (floorDifference < 0 && Direction == "down" && elevator.Movement == "down")
                         {
                             // Paths are not crossed, therefore try avoiding the use of this elevator
                             score = 0;
+                        }
+                        else if (floorDifference > 0 && Direction == "up" && elevator.Movement == "up")
+                        {
+                            // Paths are not crossed, therefore try avoiding the use of this elevator
+                            score = 0;
+                        }
+                        else
+                        {
+                            // Paths are crossed, therefore favor this elevator
+                            score += 1000;
 
                             // Calculate next floor difference differently based on whether or not elevator's next floor will be at RC or not
                             int nextFloorDifference;
                             if (elevator.NextFloor != Elevator.OriginFloor)
-                                nextFloorDifference = elevator.NextFloor - RequestedFloor;
+                                nextFloorDifference = elevator.NextFloor - _floor;
                             else
-                                nextFloorDifference = chosenColumn.LowestFloor - RequestedFloor;
+                                nextFloorDifference = elevator.NextFloor - _floor;
 
                             // Give redemption points, in worst case scenario where all elevators never cross paths
                             if (nextFloorDifference == 0)
@@ -222,7 +210,7 @@ namespace Commercial_Controller
                 int index = elevatorScores.FindIndex(score => score == highestScore);
                 chosenElevator = chosenColumn.ElevatorList[index];
 
-                WriteLine($"Chosen elevator of Column {chosenColumn.ID}: Elevator ${chosenElevator.ID}");
+                WriteLine($"Chosen elevator of Column {chosenColumn.ID}: Elevator {chosenElevator.ID}\n");
             }
             return chosenElevator;
         }
@@ -230,12 +218,9 @@ namespace Commercial_Controller
         // Send new request to chosen elevator 
         public void SendRequest(Elevator elevator)
         {
-            var request = new Request(Floor, Direction);
+            var request = new Request(_floor, Direction);
             elevator.RequestsQueue.Add(request);
         }
-
-
-
         #endregion
     }
 }
