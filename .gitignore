@@ -1,0 +1,5 @@
+
+*.json
+*.cache
+*.dll
+*.pdb
