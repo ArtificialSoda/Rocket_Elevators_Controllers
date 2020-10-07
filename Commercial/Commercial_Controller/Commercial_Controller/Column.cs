@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     class Column
     {
@@ -22,7 +22,7 @@ namespace Commercial_Controller
             }
         }
         #endregion
-
+        
         #region FIELDS
         private string _status;
         private int _lowestFloor;

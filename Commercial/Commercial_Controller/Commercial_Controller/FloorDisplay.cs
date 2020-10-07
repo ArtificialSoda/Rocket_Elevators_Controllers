@@ -2,7 +2,7 @@
 using static System.Threading.Thread;
 using static System.Console;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     class FloorDisplay
     {

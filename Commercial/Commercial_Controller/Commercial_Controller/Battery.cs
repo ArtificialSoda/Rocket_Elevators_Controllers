@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using static System.Console;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     class Battery
     {

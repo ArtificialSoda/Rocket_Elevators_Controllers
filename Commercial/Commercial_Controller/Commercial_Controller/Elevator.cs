@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using static System.Console;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     class Elevator
     {
@@ -180,8 +180,8 @@ namespace Commercial_Controller
             GoToNextFloor();
         }
 
-        // Get what should be the movement direction of the elevator for its upcoming request
-        public void GetMovement()
+        // Set what should be the movement direction of the elevator for its upcoming request
+        private void SetMovement()
         {
             int floorDifference = CurrentFloor - RequestsQueue[0].Floor;
 
@@ -194,10 +194,10 @@ namespace Commercial_Controller
         }
 
         // Sort requests, for added efficiency
-        public void SortRequestsQueue()
+        private void SortRequestsQueue()
         {
             Request request = RequestsQueue[0];
-            GetMovement();
+            SetMovement();
 
             if (RequestsQueue.Count > 1)
             {

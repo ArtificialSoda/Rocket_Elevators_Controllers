@@ -2,7 +2,7 @@
 using static System.Console;
 using static System.Threading.Thread;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     class Program
     {

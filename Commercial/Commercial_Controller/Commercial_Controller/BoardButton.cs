@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using static System.Console;
 using static System.Threading.Thread;
 
-namespace Commercial_Controller
+namespace Commercial_ControllerCS
 {
     /// <summary>
     /// Entrance board button - there's one assigned to each floor of the building. It will decide which elevator of which column to call for you.
@@ -86,7 +86,7 @@ namespace Commercial_Controller
         }
 
         // Light up a pressed button
-        public void ControlLight()
+        private void ControlLight()
         {
             if (_isToggled)
                 _isEmittingLight = true;
@@ -95,14 +95,14 @@ namespace Commercial_Controller
         }
 
         // Set what is the direction of the request when requesting an elevator to pick you up from RC
-        public void SetDirection()
+        private void SetDirection()
         {
             int floorDifference =  RequestedFloor - _floor;
             Direction = (floorDifference > 0) ? "up" : "down";
         }
 
         // Choose which column to go to, based on the requested floor
-        public Column ChooseColumn()
+        private Column ChooseColumn()
         {
             foreach (var column in _battery.ColumnList)
             {
@@ -216,7 +216,7 @@ namespace Commercial_Controller
         }
 
         // Send new request to chosen elevator 
-        public void SendRequest(Elevator elevator)
+        private void SendRequest(Elevator elevator)
         {
             var request = new Request(_floor, Direction);
             elevator.RequestsQueue.Add(request);
