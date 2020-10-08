@@ -494,9 +494,8 @@ class CallButton
         chosen_elevator = nil
         if (highest_score > -1)
             chosen_elevator = @column.elevator_list[elevator_scores.find_index(highest_score)]
+            puts "Chosen elevator: Elevator #{chosen_elevator.id}"
         end
-
-        puts "Chosen elevator: Elevator #{chosen_elevator.id}"
         return chosen_elevator
     end
 

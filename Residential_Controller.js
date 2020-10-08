@@ -58,7 +58,7 @@ class Battery
             this.status = "offline";
             for (let column of this.columnList)
             {
-                column.status = "offline"
+                column.status = "offline";
                 for (let elevator of column.elevatorList)
                 {
                     elevator.status = "offline";
@@ -542,9 +542,10 @@ class CallButton
         // Get the elevator with the highest score (or NULL if all elevators were offline)
         let chosenElevator = null;
         if (highestScore > -1)
+        {
             chosenElevator = this.column.elevatorList[elevatorScores.indexOf(highestScore)];
-        
-        console.log(`Chosen elevator: Elevator ${chosenElevator.id}`);
+            console.log(`Chosen elevator: Elevator ${chosenElevator.id}`);
+        }
         return chosenElevator;
     }
 

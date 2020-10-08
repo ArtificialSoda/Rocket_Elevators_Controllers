@@ -414,8 +414,8 @@ class CallButton:
         chosen_elevator = None
         if (highest_score > -1):
             chosen_elevator = self.column.elevator_list[elevator_scores.index(highest_score)]
+            print("Chosen elevator: Elevator {}".format(chosen_elevator.id))
 
-        print("Chosen elevator: Elevator {}".format(chosen_elevator.id))
         return chosen_elevator
 
     # Send new request to chosen elevator
