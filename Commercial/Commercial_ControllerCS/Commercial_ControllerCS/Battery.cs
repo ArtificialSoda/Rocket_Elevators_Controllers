@@ -79,6 +79,9 @@ namespace Commercial_ControllerCS
             Status = "online"; // online|offline
             ColumnList = new List<Column>();
             BoardButtonList = new List<BoardButton>();
+            isFire = false;
+            isPowerOutage = false;
+            isMechanicalFailure = false;
         }
         #endregion
 
@@ -171,7 +174,7 @@ namespace Commercial_ControllerCS
                     }
                 }
 
-                // Stop execution of script (the infinite while loop is voluntary)
+                // Stop execution of script
                 Write($"Battery {ID} has been shut down for maintenance. Sorry for the inconvenience.");
                 System.Environment.Exit(1);
             }
