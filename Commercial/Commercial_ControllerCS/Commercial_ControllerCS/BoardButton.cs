@@ -64,21 +64,26 @@ namespace Commercial_ControllerCS
             WriteLine("\nELEVATOR REQUEST - FROM A BOARD BUTTON");
             Sleep(Program.SLEEP_TIME);
 
+            // Print the important details of the request
             if (RequestedFloor > 1)
                 WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to floor {RequestedFloor}. This person decides to call an elevator.");
             else
                 WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to B{Math.Abs(RequestedFloor)} (floor {RequestedFloor}). This person decides to call an elevator.");
             Sleep(Program.SLEEP_TIME);
 
+            
+	        // Turn on the pressed button's light
             _isToggled = true;
             ControlLight();
 
+            // Get the chosen elevator and send it the request, if at least 1 elevator has a status of 'online'
             var chosenElevator = ChooseElevator();
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
                 SendRequest(chosenElevator);
 
+            // Turn off the pressed button's light
             _isToggled = false;
             ControlLight();
 

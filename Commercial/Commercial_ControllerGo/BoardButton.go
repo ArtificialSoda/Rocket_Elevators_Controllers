@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"time"
 )
 
 type BoardButton struct {
@@ -10,7 +12,6 @@ type BoardButton struct {
 	// PROPERTIES
 	Battery         *Battery
 	RequestedFloor  int
-	Floor           int
 	Direction       string // up|down
 	isToggled       bool
 	isEmittingLight bool
@@ -21,15 +22,57 @@ func (btn *BoardButton) InitBoardButton(requestedFloor int, battery *Battery) {
 
 	btn.RequestedFloor = requestedFloor
 	btn.Battery = battery
-	btn.Floor = OriginFloor
 	btn.isToggled = false
 	btn.isEmittingLight = false
 }
 
 // METHODS
 // Send request to chosen elevator + return its value for further use
-func (btn *BoardButton) Press() {
+func (btn *BoardButton) Press() (Elevator, error) {
 
+	btn.SetDirection()
+
+	fmt.Println("\nELEVATOR REQUEST - FROM A BOARD BUTTON")
+	time.Sleep(time.Second)
+
+	// Print the important details of the request
+	if btn.RequestedFloor > 1 {
+		fmt.Printf("Someone is at RC (floor %d) and wants to go %s to floor %d. This person decides to call an elevator.",
+			OriginFloor, btn.Direction, btn.RequestedFloor)
+
+	} else {
+		fmt.Printf("Someone is at RC (floor %d) and wants to go %s to B%d (floor %d). This person decides to call an elevator.",
+			OriginFloor, btn.Direction, int64(math.Abs(float64(btn.RequestedFloor))), btn.RequestedFloor)
+	}
+	time.Sleep(time.Second)
+
+	// Turn on the pressed button's light
+	btn.isToggled = true
+	btn.ControlLight()
+
+	// Get the chosen elevator and send it the request, if at least 1 elevator has a status of 'online'
+	var chosenElevator Elevator
+	if elevator, err := btn.ChooseElevator(); err != nil {
+
+		chosenElevator = elevator
+		btn.SendRequest(chosenElevator)
+
+		// Turn off the pressed button's light
+		btn.isToggled = false
+		btn.ControlLight()
+
+		return chosenElevator, nil
+
+	} else {
+
+		fmt.Println("ChooseElevator(), BoardButton.go FAILED: ", err)
+
+		// Turn off the pressed button's light
+		btn.isToggled = false
+		btn.ControlLight()
+
+		return Elevator{}, errors.New("No elevator can take the board button's request at this moment.")
+	}
 }
 
 // Light up a pressed button
@@ -46,7 +89,7 @@ func (btn *BoardButton) ControlLight() {
 // Set what is the direction of the request when requesting an elevator to pick you up from RC
 func (btn *BoardButton) SetDirection() {
 
-	floorDifference := btn.RequestedFloor - btn.Floor
+	floorDifference := btn.RequestedFloor - OriginFloor
 
 	if floorDifference > 0 {
 		btn.Direction = "up"
@@ -72,14 +115,14 @@ func (btn *BoardButton) ChooseColumn() (Column, error) {
 }
 
 // Choose which elevator should be called from the chosen column
-func (btn *BoardButton) ChooseElevator() Elevator {
+func (btn *BoardButton) ChooseElevator() (Elevator, error) {
 
 	elevatorScores := []float64{}
 	chosenColumn := Column{}
 
 	// Get the chosen column, if the requested floor is valid and within range
 	if col, err := btn.ChooseColumn(); err != nil {
-		chosenColumn := col
+		chosenColumn = col
 
 	} else {
 		fmt.Println("ChooseColumn(), BoardButton.go FAILED: ", err)
@@ -176,16 +219,19 @@ func (btn *BoardButton) ChooseElevator() Elevator {
 	}
 
 	// Get the elevator with the highest score (or NIL if all elevators were offline)
-	chosenElevator := Elevator{}
+	var chosenElevator Elevator
 	if highestScore > -1 {
 
 		chosenElevator = chosenColumn.ElevatorList[highestScoreIndex]
 		fmt.Printf("Chosen elevator of Column %d: Elevator %d", chosenColumn.ID, chosenElevator.ID)
+		return chosenElevator, nil
 	}
-	return chosenElevator
+	return Elevator{}, errors.New("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.")
 }
 
 // Send new request to chosen elevator
 func (btn BoardButton) SendRequest(elevator Elevator) {
 
+	r := Request{OriginFloor, btn.Direction}
+	elevator.RequestsQueue = append(elevator.RequestsQueue, r)
 }

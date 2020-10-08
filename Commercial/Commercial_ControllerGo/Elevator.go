@@ -157,8 +157,6 @@ func (elevator *Elevator) SetMovement() {
 // Sort requests, for added efficiency
 func (elevator *Elevator) SortRequestsQueue() {
 
-	request := elevator.RequestsQueue[0]
-
 	// Remove any requests which are useless i.e. requests that are already on their desired floor
 	for i, req := range elevator.RequestsQueue {
 
@@ -168,8 +166,10 @@ func (elevator *Elevator) SortRequestsQueue() {
 		}
 	}
 
+	// Decide if elevator is going up, down or is staying idle
 	elevator.SetMovement()
 
+	// Sort
 	if len(elevator.RequestsQueue) > 1 {
 
 		if elevator.Movement == "up" {

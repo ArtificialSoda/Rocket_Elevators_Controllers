@@ -205,8 +205,6 @@ namespace Commercial_ControllerCS
         // Sort requests, for added efficiency
         private void SortRequestsQueue()
         {
-            Request request = RequestsQueue[0];
-
             // Remove any requests which are useless i.e. requests that are already on their desired floor
             foreach (var req in RequestsQueue.ToArray())
             {
@@ -215,8 +213,10 @@ namespace Commercial_ControllerCS
                     RequestsQueue.Remove(RequestsQueue.Find(x => x.Floor == CurrentFloor));
             }
 
+            // Decide if elevator is going up, down or is staying idle
             SetMovement();
-
+            
+            // Sort
             if (RequestsQueue.Count > 1)
             {
                 if (Movement == "up")
