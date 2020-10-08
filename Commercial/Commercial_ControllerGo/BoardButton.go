@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+/* Entrance board button - there's one assigned to each floor of the building. It will decide which elevator of which column to call for you */
 type BoardButton struct {
 
 	// PROPERTIES
@@ -157,7 +158,7 @@ func (btn *BoardButton) ChooseElevator() (Elevator, error) {
 				score += 5000
 
 			} else {
-				score += 5000 / (math.Abs(float64(floorDifference) + 1))
+				score += 5000 / (math.Abs(float64(floorDifference)) + 1)
 			}
 
 			// Bonify score based on direction (highest priority)
@@ -189,7 +190,7 @@ func (btn *BoardButton) ChooseElevator() (Elevator, error) {
 					if nextFloorDifference == 0 {
 						score += 500
 					} else {
-						score += 500 / (math.Abs(float64(nextFloorDifference) + 1))
+						score += 500 / (math.Abs(float64(nextFloorDifference)) + 1)
 					}
 				}
 			}
