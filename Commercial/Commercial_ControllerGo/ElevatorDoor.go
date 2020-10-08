@@ -13,12 +13,14 @@ type ElevatorDoor struct {
 
 // METHODS
 func (door *ElevatorDoor) OpenDoor() {
+
 	door.Status = "opened"
 	fmt.Println("Door has opened")
 	time.Sleep(time.Second)
 }
 
 func (door *ElevatorDoor) CloseDoor() {
+
 	door.Status = "closed"
 	fmt.Println("Door has closed")
 	time.Sleep(time.Second)
