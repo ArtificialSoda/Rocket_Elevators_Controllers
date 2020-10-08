@@ -240,11 +240,11 @@ namespace Commercial_ControllerCS
                     // Reverse the sorted queue (will now be in descending order)
                     RequestsQueue.Sort((x, y) => y.Floor.CompareTo(x.Floor));
 
+                    // Push any request to the end of the queue that would require a direction change
                     foreach (var req in RequestsQueue.ToArray())
                     {
 
-                        // Push any request to the end of the queue that would require a direction change
-                        if (req.Direction != Movement || req.Floor < CurrentFloor)
+                        if (req.Direction != Movement || req.Floor > CurrentFloor)
                         {
                             RequestsQueue.Remove(req);
                             RequestsQueue.Add(req);
