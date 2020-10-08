@@ -133,7 +133,7 @@ namespace Commercial_ControllerCS
                 if (elevator.CurrentFloor != Elevator.OriginFloor)
                     floorDifference = elevator.CurrentFloor - chosenColumn.LowestFloor;
                 else
-                    floorDifference = elevator.CurrentFloor - Elevator.OriginFloor;
+                    floorDifference = 0;
 
                 // Prevents use of any offline/under-maintenance elevators
                 if (elevator.Status != "online")
@@ -171,9 +171,9 @@ namespace Commercial_ControllerCS
                             // Calculate next floor difference differently based on whether or not elevator's next floor will be at RC or not
                             int nextFloorDifference;
                             if (elevator.NextFloor != Elevator.OriginFloor)
-                                nextFloorDifference = elevator.NextFloor - _floor;
+                                nextFloorDifference = elevator.NextFloor - chosenColumn.LowestFloor;
                             else
-                                nextFloorDifference = elevator.NextFloor - _floor;
+                                nextFloorDifference = 0;
 
                             // Give redemption points, in worst case scenario where all elevators never cross paths
                             if (nextFloorDifference == 0)

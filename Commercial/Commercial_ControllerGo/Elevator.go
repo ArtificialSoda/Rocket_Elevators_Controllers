@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 // STATIC PROPERTIES (in Golang, it's treated as a global)
 var OriginFloor int = 1
+var MaxWeightKG int = 2000
 
 type Elevator struct {
 
@@ -17,21 +19,32 @@ type Elevator struct {
 	MaxWeightKG   int
 	CurrentFloor  int
 	NextFloor     int
-	Column        Column
+	Column        *Column
 	FloorDisplay  FloorDisplay
-	RequestsQueue []int
+	RequestsQueue []Request
 	Door          ElevatorDoor
+}
+
+// CONSTRUCTOR :-> Initialize an elevator with the default values when creating a column's elevator list
+func (elevator *Elevator) InitElevator(id int, column *Column) {
+
+	elevator.ID = id
+	elevator.Column = column
+	elevator.Movement = "idle"
+	elevator.CurrentFloor = 1
+	elevator.FloorDisplay = FloorDisplay{elevator}
+	elevator.RequestsQueue = []Request{}
+	elevator.Door = ElevatorDoor{"closed"}
 }
 
 // METHODS
 // Change properties of an ACTIVE elevator in one line - USE ONLY FOR TESTING
-func (elevator *Elevator) ChangePropertiesActive(newCurrentFloor int, newNextFloor int?) {
+func (elevator *Elevator) ChangePropertiesActive(newCurrentFloor int, newNextFloor int) {
 
 	elevator.CurrentFloor = newCurrentFloor
 	elevator.NextFloor = newNextFloor
 
-	if elevator.CurrentFloor > elevator.NextFloor
-	{
+	if elevator.CurrentFloor > elevator.NextFloor {
 		elevator.Movement = "down"
 
 	} else {
@@ -53,36 +66,36 @@ func (elevator *Elevator) ChangePropertiesIdle(newCurrentFloor int) {
 // Make elevator go to its scheduled next floor
 func (elevator *Elevator) GoToNextFloor() {
 
-	if (elevator.CurrentFloor != elevator.NextFloor) {
-		
+	if elevator.CurrentFloor != elevator.NextFloor {
+
 		if elevator.CurrentFloor > 0 {
-			
-			fmt.Printf("Elevator %d of Column %d, currently at floor %d, is about to go to floor %d...", 
-						elevator.ID, elevator.Column.ID, elevator.CurrentFloor, elevator.NextFloor)
+
+			fmt.Printf("Elevator %d of Column %d, currently at floor %d, is about to go to floor %d...",
+				elevator.ID, elevator.Column.ID, elevator.CurrentFloor, elevator.NextFloor)
 
 		} else if elevator.NextFloor < 0 {
 
-			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor B%d...", 
-						elevator.ID, elevator.Column.ID, math.Abs(elevator.CurrentFloor), math.Abs(elevator.NextFloor))
-		
-		} else if elevator.nextFloor > 0 {
+			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor B%d...",
+				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))), int64(math.Abs(float64(elevator.NextFloor))))
 
-			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor %d...", 
-						elevator.ID, elevator.Column.ID, math.Abs(elevator.CurrentFloor), elevator.NextFloor)
+		} else if elevator.NextFloor > 0 {
+
+			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor %d...",
+				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))), elevator.NextFloor)
 		}
 		fmt.Println("=================================================================")
 		elevator.FloorDisplay.DisplayFloor()
-		
+
 		// Traverse through the floors
 		for elevator.CurrentFloor != elevator.NextFloor {
-			
+
 			// Do not display floors that are not part of the column's range
 			if elevator.Movement == "up" {
 
-				if elevator.CurrentFloor + 1 < elevator.Column.LowestFloor {
-					
+				if elevator.CurrentFloor+1 < elevator.Column.LowestFloor {
+
 					fmt.Printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
-							    elevator.Column.ID);
+						elevator.Column.ID)
 					elevator.CurrentFloor = elevator.Column.LowestFloor
 				} else {
 					elevator.CurrentFloor++
@@ -90,28 +103,28 @@ func (elevator *Elevator) GoToNextFloor() {
 
 			} else {
 
-				if elevator.CurrentFloor - 1 < elevator.Column.LowestFloor {
+				if elevator.CurrentFloor-1 < elevator.Column.LowestFloor {
 
 					fmt.Printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
-								 elevator.Column.ID);
+						elevator.Column.ID)
 					elevator.CurrentFloor = OriginFloor
 				} else {
-					elevatorCurrentFloor++
+					elevator.CurrentFloor--
 				}
 			}
 
 			elevator.FloorDisplay.DisplayFloor()
 		}
 		fmt.Println("=================================================================")
-		
+
 		if elevator.CurrentFloor > 0 {
 
-			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor %d...", 
-						elevator.ID, elevator.Column.ID, elevator.CurrentFloor)
+			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor %d...",
+				elevator.ID, elevator.Column.ID, elevator.CurrentFloor)
 		} else {
 
-			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor B%d...", 
-						elevator.ID, elevator.Column.ID, math.Abs(elevator.CurrentFloor))
+			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor B%d...",
+				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))))
 		}
 	}
 }
@@ -120,9 +133,9 @@ func (elevator *Elevator) GoToNextFloor() {
 func (elevator *Elevator) GoToOrigin() {
 
 	elevator.NextFloor = OriginFloor
-	fmt.Printf("Elevator %d of Column %d going back to RC (floor %d)...".
-				elevator.ID, elevator.Column.ID, OriginFloor)
-	GoToNextFloor()
+	fmt.Printf("Elevator %d of Column %d going back to RC (floor %d)...",
+		elevator.ID, elevator.Column.ID, OriginFloor)
+	elevator.GoToNextFloor()
 }
 
 // Set what should be the movement direction of the elevator for its upcoming request
@@ -130,10 +143,9 @@ func (elevator *Elevator) SetMovement() {
 
 	floorDifference := elevator.CurrentFloor - elevator.RequestsQueue[0].Floor
 
-	if floorDifference > 0
-	{
+	if floorDifference > 0 {
 		elevator.Movement = "down"
-	} else if (floorDifference < 0) {
+	} else if floorDifference < 0 {
 
 		elevator.Movement = "up"
 	} else {
@@ -144,19 +156,19 @@ func (elevator *Elevator) SetMovement() {
 
 // Sort requests, for added efficiency
 func (elevator *Elevator) SortRequestsQueue() {
-	
+
 	request := elevator.RequestsQueue[0]
 
 	// Remove any requests which are useless i.e. requests that are already on their desired floor
 	for i, req := range elevator.RequestsQueue {
 
 		if req.Floor == elevator.CurrentFloor {
-			
-			elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:])
+
+			elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:]...)
 		}
 	}
 
-	SetMovement()
+	elevator.SetMovement()
 
 	if len(elevator.RequestsQueue) > 1 {
 
@@ -168,12 +180,12 @@ func (elevator *Elevator) SortRequestsQueue() {
 			})
 
 			//  Push any request to the end of the queue that would require a direction change
-			for _, req := range elevator.RequestsQueue {
+			for i, req := range elevator.RequestsQueue {
 
 				if req.Direction != elevator.Movement || req.Floor < elevator.CurrentFloor {
 
-					elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:])
-					elevator.RequestsQueue = append(req);
+					elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:]...)
+					elevator.RequestsQueue = append(elevator.RequestsQueue, req)
 				}
 			}
 
@@ -185,17 +197,14 @@ func (elevator *Elevator) SortRequestsQueue() {
 			})
 
 			//  Push any request to the end of the queue that would require a direction change
-			for _, req := range elevator.RequestsQueue {
+			for i, req := range elevator.RequestsQueue {
 
 				if req.Direction != elevator.Movement || req.Floor > elevator.CurrentFloor {
 
-					elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:])
-					elevator.RequestsQueue = append(req);
+					elevator.RequestsQueue = append(elevator.RequestsQueue[:i-1], elevator.RequestsQueue[i+1:]...)
+					elevator.RequestsQueue = append(elevator.RequestsQueue, req)
 				}
 			}
-
-
-
 
 		}
 	}
@@ -207,42 +216,42 @@ func (elevator *Elevator) DoRequests() {
 	if len(elevator.RequestsQueue) > 0 {
 
 		// Make sure queue is sorted before any request is completed
-		SortRequestsQueue()
+		elevator.SortRequestsQueue()
 		requestToComplete := elevator.RequestsQueue[0]
 
 		// Go to requested floor
-		if (elevator.Door.Status != "closed") {
-			CloseDoor()
+		if elevator.Door.Status != "closed" {
+			elevator.Door.CloseDoor()
 		}
 		elevator.NextFloor = requestToComplete.Floor
-		GoToNextFloor()
+		elevator.GoToNextFloor()
 
 		// Remove request after it is complete
-		OpenDoor()
+		elevator.Door.OpenDoor()
 		elevator.RequestsQueue = append(elevator.RequestsQueue[1:])
 
 		// Automatically close door
-		CloseDoor()
+		elevator.Door.CloseDoor()
 	}
 	// Automatically go idle temporarily if 0 requests or at the end of request
 	elevator.Movement = "idle"
 }
 
 // Check if elevator is at full capacity
-func (elevator *Elevator) CheckWeight(currentWeightKG int){
-	
+func (elevator *Elevator) CheckWeight(currentWeightKG int) {
+
 	// currentWeightKG calculated thanks to weight sensors
 	if currentWeightKG > elevator.MaxWeightKG {
 
 		// Display 10 warnings
-		for _ := 0; _ < 10; _++ {
+		for i := 0; i < 10; i++ {
 			fmt.Printf("\nALERT: Maximum weight capacity reached on Elevator %d of Column %d",
-						elevator.ID, elevator.Column.ID)
-						
+				elevator.ID, elevator.Column.ID)
+
 		}
 
 		// Freeze elevator until weight goes back to normal
 		elevator.Movement = "idle"
-		OpenDoor()
+		elevator.Door.OpenDoor()
 	}
 }

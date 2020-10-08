@@ -8,6 +8,7 @@ namespace Commercial_ControllerCS
     {
         #region STATIC FIELDS
         private static int _originFloor = 1;
+        private static int _maxWeightKG = 2500;
         #endregion
 
         #region STATIC PROPERTIES
@@ -22,12 +23,22 @@ namespace Commercial_ControllerCS
                     _originFloor = value;
             }
         }
+        public static int MaxWeightKG
+        {
+            get { return _maxWeightKG; }
+            private set
+            {
+                if (value < 2000)
+                    throw new Exception("Invalid max weight limit for elevators. Can't be lower than 2000kg due to our standards.");
+                else
+                    _maxWeightKG = value;
+            }
+        }
         #endregion
 
         #region FIELDS
         private string _status;
         private string _movement;
-        private int _maxWeightKG;
         private int _currentFloor;
         private int _nextFloor;
         #endregion
@@ -56,17 +67,7 @@ namespace Commercial_ControllerCS
                     _movement = value;
             }
         }
-        public int MaxWeightKG
-        {
-            get { return _maxWeightKG; }
-            private set
-            {
-                if (value <= 0)
-                    throw new Exception("Invalid max weight limit for elevators. Can't be 0kg or lower.");
-                else
-                    _maxWeightKG = value;
-            }
-        }
+
         public int CurrentFloor 
         {
             get { return _currentFloor; }
