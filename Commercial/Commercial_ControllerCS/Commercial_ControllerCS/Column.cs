@@ -109,19 +109,9 @@ namespace Commercial_ControllerCS
             var callBtnToPress = CallButtonsList.Find(btn => btn.Floor == floorNumber);
             Elevator chosenElevator = callBtnToPress.Press();
 
-            // Do requests until elevator has reached the floor where the call was made
-            while (chosenElevator.CurrentFloor != floorNumber)
-                chosenElevator.DoRequests();
-
-            // Set a request for the elevator to go to RC, once picked up
-            string originDirection = (chosenElevator.CurrentFloor < Elevator.OriginFloor) ? "up" : "down";
-            var originRequest = new Request(Elevator.OriginFloor, originDirection);
-            chosenElevator.RequestsQueue.Add(originRequest);
-
-            // Do requests until elevator has reached origin floor (RC)
+            // Do requests until elevator has reached the final destination (RC)
             while (chosenElevator.CurrentFloor != Elevator.OriginFloor)
                 chosenElevator.DoRequests();
-              
         }
         #endregion
     }

@@ -120,10 +120,9 @@ namespace Commercial_ControllerCS
             if (CurrentFloor > NextFloor)
                 Movement = "down";
             else
-            {
                 Movement = "up";
-                RequestsQueue.Add(new Request(NextFloor, Movement));
-            }
+                
+            RequestsQueue.Add(new Request(NextFloor, Movement));
         }
         public void ChangeProperties(int newCurrentFloor)
         {
@@ -145,19 +144,28 @@ namespace Commercial_ControllerCS
                 WriteLine("=================================================================");
 
                 FloorDisplay.DisplayFloor();
+
+                // Traverse through the floors
                 while (CurrentFloor != NextFloor)
                 {
+                    // Do not display floors that are not part of the column's range
                     if (Movement.ToLower() == "up")
                     {
                         if (CurrentFloor + 1 < Column.LowestFloor)
+                        {
+                            WriteLine($"\n... Quickly traversing through the floors not in column {Column.ID}'s usual elevator range ...\n"); ;
                             CurrentFloor = Column.LowestFloor;
+                        }
                         else
                             CurrentFloor++;
                     }
                     else
                     {
                         if (CurrentFloor - 1 < Column.LowestFloor)
+                        {
+                            WriteLine($"\n... Quickly traversing through the floors not in column {Column.ID}'s usual elevator range ...\n");
                             CurrentFloor = OriginFloor;
+                        }
                         else
                             CurrentFloor--;
                     }
@@ -197,19 +205,28 @@ namespace Commercial_ControllerCS
         private void SortRequestsQueue()
         {
             Request request = RequestsQueue[0];
+
+            // Remove any requests which are useless i.e. requests that are already on their desired floor
+            foreach (var req in RequestsQueue.ToArray())
+            {
+
+                if (req.Floor == CurrentFloor)
+                    RequestsQueue.Remove(RequestsQueue.Find(x => x.Floor == CurrentFloor));
+            }
+
             SetMovement();
 
             if (RequestsQueue.Count > 1)
             {
-               
                 if (Movement == "up")
                 {
                     // Sort the queue in ascending order
                     RequestsQueue.Sort((x, y) => x.Floor.CompareTo(y.Floor));
 
                     // Push any request to the end of the queue that would require a direction change
-                    foreach (var req in RequestsQueue)
+                    foreach (var req in RequestsQueue.ToArray())
                     {
+    
                         if (req.Direction != Movement || req.Floor < CurrentFloor)
                         {
                             RequestsQueue.Remove(req);
@@ -223,10 +240,11 @@ namespace Commercial_ControllerCS
                     // Reverse the sorted queue (will now be in descending order)
                     RequestsQueue.Sort((x, y) => y.Floor.CompareTo(x.Floor));
 
-                    // Push any request to the end of the queue that would require a direction change
-                    foreach (var req in RequestsQueue)
+                    foreach (var req in RequestsQueue.ToArray())
                     {
-                        if (req.Direction != Movement || req.Floor > CurrentFloor)
+
+                        // Push any request to the end of the queue that would require a direction change
+                        if (req.Direction != Movement || req.Floor < CurrentFloor)
                         {
                             RequestsQueue.Remove(req);
                             RequestsQueue.Add(req);

@@ -191,6 +191,7 @@ namespace Commercial_ControllerCS
             string newDirection = (chosenElevator.CurrentFloor < requestedFloor) ? "up" : "down";
             var newRequest = new Request(requestedFloor, newDirection);
             chosenElevator.RequestsQueue.Add(newRequest);
+           
 
             // Do requests until elevator has reached requested floor 
             while (chosenElevator.CurrentFloor != requestedFloor)
