@@ -15,7 +15,7 @@ type ElevatorDoor struct {
 func (door *ElevatorDoor) OpenDoor() {
 
 	door.Status = "opened"
-	fmt.Println("Door has opened")
+	fmt.Println("\n\nDoor has opened")
 	time.Sleep(time.Second)
 }
 

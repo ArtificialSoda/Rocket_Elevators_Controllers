@@ -8,7 +8,6 @@ import (
 
 // STATIC PROPERTIES (in Golang, it's treated as a global)
 var OriginFloor int = 1
-var MaxWeightKG int = 2000
 
 type Elevator struct {
 
@@ -30,8 +29,10 @@ func (elevator *Elevator) InitElevator(id int, column *Column) {
 
 	elevator.ID = id
 	elevator.Column = column
+	elevator.Status = "online"
 	elevator.Movement = "idle"
 	elevator.CurrentFloor = 1
+	elevator.MaxWeightKG = 2000
 	elevator.FloorDisplay = FloorDisplay{elevator}
 	elevator.RequestsQueue = []Request{}
 	elevator.Door = ElevatorDoor{"closed"}
@@ -70,20 +71,21 @@ func (elevator *Elevator) GoToNextFloor() {
 
 		if elevator.CurrentFloor > 0 {
 
-			fmt.Printf("Elevator %d of Column %d, currently at floor %d, is about to go to floor %d...",
+			fmt.Printf("\nElevator %d of Column %d, currently at floor %d, is about to go to floor %d...",
 				elevator.ID, elevator.Column.ID, elevator.CurrentFloor, elevator.NextFloor)
 
 		} else if elevator.NextFloor < 0 {
 
-			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor B%d...",
+			fmt.Printf("\nElevator %d of Column %d, currently at floor B%d, is about to go to floor B%d...",
 				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))), int64(math.Abs(float64(elevator.NextFloor))))
 
 		} else if elevator.NextFloor > 0 {
 
-			fmt.Printf("Elevator %d of Column %d, currently at floor B%d, is about to go to floor %d...",
+			fmt.Printf("\nElevator %d of Column %d, currently at floor B%d, is about to go to floor %d...",
 				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))), elevator.NextFloor)
 		}
-		fmt.Println("=================================================================")
+		fmt.Println("\n=================================================================")
+		elevator.FloorDisplay = FloorDisplay{elevator}
 		elevator.FloorDisplay.DisplayFloor()
 
 		// Traverse through the floors
@@ -94,36 +96,37 @@ func (elevator *Elevator) GoToNextFloor() {
 
 				if elevator.CurrentFloor+1 < elevator.Column.LowestFloor {
 
-					fmt.Printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
+					fmt.Printf("\n\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
 						elevator.Column.ID)
 					elevator.CurrentFloor = elevator.Column.LowestFloor
 				} else {
-					elevator.CurrentFloor++
+					elevator.CurrentFloor += 1
 				}
 
 			} else {
 
 				if elevator.CurrentFloor-1 < elevator.Column.LowestFloor {
 
-					fmt.Printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
+					fmt.Printf("\n\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n",
 						elevator.Column.ID)
 					elevator.CurrentFloor = OriginFloor
 				} else {
-					elevator.CurrentFloor--
+					elevator.CurrentFloor -= 1
 				}
 			}
 
+			//elevator.FloorDisplay = FloorDisplay{elevator}
 			elevator.FloorDisplay.DisplayFloor()
 		}
-		fmt.Println("=================================================================")
+		fmt.Println("\n=================================================================")
 
 		if elevator.CurrentFloor > 0 {
 
-			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor %d...",
+			fmt.Printf("\nElevator %d of Column %d has reached its requested floor! It is now at floor %d...",
 				elevator.ID, elevator.Column.ID, elevator.CurrentFloor)
 		} else {
 
-			fmt.Printf("Elevator %d of Column %d has reached its requested floor! It is now at floor B%d...",
+			fmt.Printf("\nElevator %d of Column %d has reached its requested floor! It is now at floor B%d...",
 				elevator.ID, elevator.Column.ID, int64(math.Abs(float64(elevator.CurrentFloor))))
 		}
 	}
@@ -152,6 +155,13 @@ func (elevator *Elevator) SetMovement() {
 
 		elevator.Movement = "idle"
 	}
+}
+
+// Send new request to its request queue
+func (elevator *Elevator) SendRequest(stopFloor int, btnDirection string) {
+
+	r := Request{stopFloor, btnDirection}
+	elevator.RequestsQueue = append(elevator.RequestsQueue, r)
 }
 
 // Sort requests, for added efficiency

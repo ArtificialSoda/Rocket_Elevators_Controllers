@@ -22,7 +22,64 @@ type Battery struct {
 	isMechanicalFailure bool
 }
 
+// CONSTRUCTOR :-> Initialize a column with the default values when creating a battery's columns list
+func (battery *Battery) InitBattery(id int) {
+
+	battery.ID = id
+	battery.Status = "online" // online|offline
+	battery.ColumnList = []Column{}
+	battery.BoardButtonList = []BoardButton{}
+	battery.isFire = false
+	battery.isPowerOutage = false
+	battery.isMechanicalFailure = false
+}
+
 // METHODS
+// Run all initialiazing/startup Battery methods
+func (battery *Battery) Run() {
+
+	battery.CreateColumnList()
+	battery.CreateBoardButtons()
+}
+
+// Initialize the battery's collection of columns
+func (battery *Battery) CreateColumnList() {
+
+	for columnID := 1; columnID <= NumColumns; columnID++ {
+
+		column := Column{}
+		column.InitColumn(columnID)
+
+		// Set up allowed floor ranges
+		if NumBasements > 0 {
+
+			if columnID == 1 {
+
+				// Column takes care of basement floors
+				column.LowestFloor = -(NumBasements)
+				column.HighestFloor = -1
+
+			} else {
+
+				// Column takes care of above-ground floors
+				column.LowestFloor = 1 + NumFloors/(NumColumns-1)*(columnID-2)
+				column.HighestFloor = NumFloors / (NumColumns - 1) * (columnID - 1)
+
+			}
+
+		} else {
+
+			// No basement floors - therefore all floors are above-ground
+			column.LowestFloor = 1 + NumFloors/NumColumns*(columnID-1)
+			column.HighestFloor = NumFloors / NumColumns * columnID
+		}
+
+		column.CreateElevatorList()
+		column.CreateCallButtons()
+		battery.ColumnList = append(battery.ColumnList, column)
+	}
+}
+
 // Initialize the battery's board display's buttons
 func (battery *Battery) CreateBoardButtons() {
 
@@ -86,7 +143,7 @@ func (battery *Battery) AssignElevator(requestedFloor int) {
 
 	// Select the chosen elevator
 	var chosenElevator Elevator
-	if elevator, err := boardBtnToPress.Press(); err != nil {
+	if elevator, err := boardBtnToPress.Press(); err == nil {
 		chosenElevator = elevator
 
 	} else {
@@ -107,8 +164,7 @@ func (battery *Battery) AssignElevator(requestedFloor int) {
 		newDirection = "down"
 	}
 
-	r := Request{requestedFloor, newDirection}
-	chosenElevator.RequestsQueue = append(chosenElevator.RequestsQueue, r)
+	chosenElevator.SendRequest(requestedFloor, newDirection)
 
 	// Do requests until elevator has reached requested floor
 	for chosenElevator.CurrentFloor != requestedFloor {

@@ -33,7 +33,7 @@ func (btn *CallButton) Press() (Elevator, error) {
 
 	btn.SetDirection()
 
-	fmt.Println("\nELEVATOR REQUEST - FROM A CALL BUTTON")
+	fmt.Println("\n\nELEVATOR REQUEST - FROM A CALL BUTTON")
 	time.Sleep(time.Second)
 
 	// Print the important details of the request
@@ -53,10 +53,10 @@ func (btn *CallButton) Press() (Elevator, error) {
 
 	// Get the chosen elevator and send it the request, if at least 1 elevator has a status of 'online'
 	var chosenElevator Elevator
-	if elevator, err := btn.ChooseElevator(); err != nil {
+	if elevator, err := btn.ChooseElevator(); err == nil {
 
 		chosenElevator = elevator
-		btn.SendRequest(chosenElevator)
+		chosenElevator.SendRequest(btn.Floor, btn.Direction)
 
 		// Turn off the pressed button's light
 		btn.isToggled = false
@@ -199,15 +199,8 @@ func (btn *CallButton) ChooseElevator() (Elevator, error) {
 	if highestScore > -1 {
 
 		chosenElevator = btn.Column.ElevatorList[highestScoreIndex]
-		fmt.Printf("Chosen elevator of Column %d: Elevator %d", btn.Column.ID, chosenElevator.ID)
+		fmt.Printf("\nChosen elevator of Column %d: Elevator %d", btn.Column.ID, chosenElevator.ID)
 		return chosenElevator, nil
 	}
-	return Elevator{}, errors.New("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.")
-}
-
-// Send new request to chosen elevator
-func (btn CallButton) SendRequest(elevator Elevator) {
-
-	r := Request{btn.Floor, btn.Direction}
-	elevator.RequestsQueue = append(elevator.RequestsQueue, r)
+	return Elevator{}, errors.New("\nAll of our elevators are currently undergoing maintenance, sorry for the inconvenience.")
 }

@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 // STATIC PROPERTIES (in Golang, it's treated as a global)
-var NumElevators int = 1
+var NumElevators int
 
 type Column struct {
 
@@ -14,6 +14,15 @@ type Column struct {
 	HighestFloor   int
 	ElevatorList   []Elevator
 	CallButtonList []CallButton
+}
+
+// CONSTRUCTOR :-> Initialize a column with the default values when creating a battery's columns list
+func (column *Column) InitColumn(id int) {
+
+	column.ID = id
+	column.Status = "online" // online|offline
+	column.ElevatorList = []Elevator{}
+	column.CallButtonList = []CallButton{}
 }
 
 // METHODS
@@ -54,11 +63,11 @@ func (column *Column) RequestElevator(floorNumber int) {
 
 	// Select the chosen elevator
 	var chosenElevator Elevator
-	if elevator, err := callBtnToPress.Press(); err != nil {
+	if elevator, err := callBtnToPress.Press(); err == nil {
 		chosenElevator = elevator
 
 	} else {
-		fmt.Println("RequestElevator(), Column.go FAILED: ", err)
+		fmt.Println("\nRequestElevator(), Column.go FAILED: ", err)
 	}
 
 	// Do requests until elevator has reached the final destination (RC)

@@ -33,7 +33,7 @@ func (btn *BoardButton) Press() (Elevator, error) {
 
 	btn.SetDirection()
 
-	fmt.Println("\nELEVATOR REQUEST - FROM A BOARD BUTTON")
+	fmt.Println("\n\nELEVATOR REQUEST - FROM A BOARD BUTTON")
 	time.Sleep(time.Second)
 
 	// Print the important details of the request
@@ -53,10 +53,10 @@ func (btn *BoardButton) Press() (Elevator, error) {
 
 	// Get the chosen elevator and send it the request, if at least 1 elevator has a status of 'online'
 	var chosenElevator Elevator
-	if elevator, err := btn.ChooseElevator(); err != nil {
+	if elevator, err := btn.ChooseElevator(); err == nil {
 
 		chosenElevator = elevator
-		btn.SendRequest(chosenElevator)
+		chosenElevator.SendRequest(OriginFloor, btn.Direction)
 
 		// Turn off the pressed button's light
 		btn.isToggled = false
@@ -66,13 +66,13 @@ func (btn *BoardButton) Press() (Elevator, error) {
 
 	} else {
 
-		fmt.Println("ChooseElevator(), BoardButton.go FAILED: ", err)
+		fmt.Println("\nChooseElevator(), BoardButton.go FAILED: ", err)
 
 		// Turn off the pressed button's light
 		btn.isToggled = false
 		btn.ControlLight()
 
-		return Elevator{}, errors.New("No elevator can take the board button's request at this moment.")
+		return Elevator{}, errors.New("\nNo elevator can take the board button's request at this moment.")
 	}
 }
 
@@ -107,12 +107,12 @@ func (btn *BoardButton) ChooseColumn() (Column, error) {
 
 		if btn.RequestedFloor >= column.LowestFloor && btn.RequestedFloor <= column.HighestFloor {
 
-			fmt.Printf("Chosen column: Column %d", column.ID)
+			fmt.Printf("\nChosen column: Column %d", column.ID)
 			return column, nil
 
 		}
 	}
-	return Column{}, fmt.Errorf("None of columns go to that specified floor (floor %d). Fix the floor ranges.", btn.RequestedFloor)
+	return Column{}, fmt.Errorf("\nNone of columns go to that specified floor (floor %d). Fix the floor ranges.", btn.RequestedFloor)
 }
 
 // Choose which elevator should be called from the chosen column
@@ -122,11 +122,11 @@ func (btn *BoardButton) ChooseElevator() (Elevator, error) {
 	chosenColumn := Column{}
 
 	// Get the chosen column, if the requested floor is valid and within range
-	if col, err := btn.ChooseColumn(); err != nil {
+	if col, err := btn.ChooseColumn(); err == nil {
 		chosenColumn = col
 
 	} else {
-		fmt.Println("ChooseColumn(), BoardButton.go FAILED: ", err)
+		fmt.Println("\nChooseColumn(), BoardButton.go FAILED: ", err)
 	}
 
 	for _, elevator := range chosenColumn.ElevatorList {
@@ -224,15 +224,9 @@ func (btn *BoardButton) ChooseElevator() (Elevator, error) {
 	if highestScore > -1 {
 
 		chosenElevator = chosenColumn.ElevatorList[highestScoreIndex]
-		fmt.Printf("Chosen elevator of Column %d: Elevator %d", chosenColumn.ID, chosenElevator.ID)
+		fmt.Printf("\nChosen elevator of Column %d: Elevator %d", chosenColumn.ID, chosenElevator.ID)
 		return chosenElevator, nil
 	}
-	return Elevator{}, errors.New("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.")
+	return Elevator{}, errors.New("\nAll of our elevators are currently undergoing maintenance, sorry for the inconvenience.")
 }
 
-// Send new request to chosen elevator
-func (btn BoardButton) SendRequest(elevator Elevator) {
-
-	r := Request{OriginFloor, btn.Direction}
-	elevator.RequestsQueue = append(elevator.RequestsQueue, r)
-}
