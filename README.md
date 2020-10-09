@@ -32,4 +32,12 @@ We wrote it in 3 different interpreted programming languages: JavaScript, Python
 
 ![How it looks like in the terminal](https://i.gyazo.com/602e1eb023f45aa1833d6bf7d12db2ad.gif)
 
+### Week 3
+In week 3 of Odyssey, we were tasked with rewriting our Commercial controller's algorithm pseudocode into actual code. 
+
+To do this, we switched over to compiled programming languages this time around. 3 different compiled languages were explored: C#, Go, and Java. 
+
+Both C# and Java were great language choices for this project mainly because of their rich support for OOP and extensive set of add-on features/libraries. The implementation in Go was also a success, but it was initially more difficult to get it to work because of the language's very unique syntax compared to other popular compiled languages.
+
+Feel free to play around and modify the scripts!
  
