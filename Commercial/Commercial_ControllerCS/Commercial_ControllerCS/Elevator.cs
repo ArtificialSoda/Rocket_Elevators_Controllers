@@ -8,7 +8,7 @@ namespace Commercial_ControllerCS
     {
         #region STATIC FIELDS
         private static int _originFloor = 1;
-        private static int _maxWeightKG = 2500;
+        private static int _maxWeightKG = 2000;
         #endregion
 
         #region STATIC PROPERTIES
@@ -85,7 +85,7 @@ namespace Commercial_ControllerCS
             set
             {
                 if (value > Battery.NumFloors || value < -(Battery.NumBasements))
-                    throw new Exception("The current floor value provided for the elevator is invalid.");
+                    throw new Exception("The next floor value provided for the elevator is invalid.");
                 else
                     _nextFloor = value;
             }
@@ -217,7 +217,7 @@ namespace Commercial_ControllerCS
             {
 
                 if (req.Floor == CurrentFloor)
-                    RequestsQueue.Remove(RequestsQueue.Find(x => x.Floor == CurrentFloor));
+                    RequestsQueue.Remove(req);
             }
 
             // Decide if elevator is going up, down or is staying idle

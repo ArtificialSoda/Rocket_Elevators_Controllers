@@ -91,10 +91,7 @@ namespace Commercial_ControllerCS
         // Light up a pressed button
         private void ControlLight()
         {
-            if (_isToggled)
-                _isEmittingLight = true;
-            else
-                _isEmittingLight = false;
+            _isEmittingLight = _isToggled;
         }
 
         // Set what is the direction of the request when requesting an elevator to pick you up from RC

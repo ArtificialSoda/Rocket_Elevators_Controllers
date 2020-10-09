@@ -100,10 +100,7 @@ namespace Commercial_ControllerCS
         // Light up a pressed button
         private void ControlLight()
         {
-            if (_isToggled)
-                _isEmittingLight = true;
-            else
-                _isEmittingLight = false;
+            _isEmittingLight = _isToggled;
         }
 
         // Choose which elevator should be called

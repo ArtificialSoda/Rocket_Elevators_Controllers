@@ -47,7 +47,7 @@ namespace Commercial_ControllerCS
             get { return _lowestFloor; }
             set
             {
-                if (value > Battery.NumFloors || value < -(Battery.NumBasements))
+                if (value >= Battery.NumFloors || value < -(Battery.NumBasements))
                     throw new Exception($"The lowest floor value provided for Column {ID} is invalid.");
                 else
                     _lowestFloor = value;
@@ -58,7 +58,7 @@ namespace Commercial_ControllerCS
             get { return _highestFloor; }
             set
             {
-                if (value > Battery.NumFloors || value < -(Battery.NumBasements))
+                if (value > Battery.NumFloors || value <= -(Battery.NumBasements))
                     throw new Exception($"The highest floor value provided for Column {ID} is invalid.");
                 else
                     _highestFloor = value;
