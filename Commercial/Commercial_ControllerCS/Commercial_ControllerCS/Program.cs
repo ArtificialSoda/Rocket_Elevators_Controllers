@@ -21,6 +21,8 @@ namespace Commercial_ControllerCS
 
             Run(battery);
         }
+        
+        // Run the full test program
         static void Run(Battery battery)
         {
             while (true)
@@ -35,9 +37,9 @@ namespace Commercial_ControllerCS
                 else if (chosenScenario == 2)
                     Scenario2(battery, battery.ColumnList[2]); // Covers 02 to 20 + RC
                 else if (chosenScenario == 3)
-                    Scenario3(battery, battery.ColumnList[3]); // Covers 21 to 40 + RC
+                    Scenario3(battery.ColumnList[3]);   // Covers 21 to 40 + RC
                 else if (chosenScenario == 4)
-                    Scenario4(battery, battery.ColumnList[0]); // Covers 41 to 60 + RC
+                    Scenario4(battery.ColumnList[0]);   // Covers 41 to 60 + RC
                 else
                     continue;
 
@@ -87,7 +89,7 @@ namespace Commercial_ControllerCS
             battery.AssignElevator(36);
             Sleep(SLEEP_TIME);
         }
-        static void Scenario3(Battery battery, Column column)
+        static void Scenario3(Column column)
         {
             WriteLine("**********************************************************************************************************************************\n" +
                       "SCENARIO 3\n" +
@@ -104,7 +106,7 @@ namespace Commercial_ControllerCS
             column.RequestElevator(54);
             Sleep(SLEEP_TIME);
         }
-        static void Scenario4(Battery battery, Column column)
+        static void Scenario4(Column column)
         {
             WriteLine("**********************************************************************************************************************************\n" +
                       "SCENARIO 4\n" +

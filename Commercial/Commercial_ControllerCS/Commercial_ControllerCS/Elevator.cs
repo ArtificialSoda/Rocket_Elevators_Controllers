@@ -202,6 +202,13 @@ namespace Commercial_ControllerCS
                 Movement = "idle";
         }
 
+        // Send new request to its request queue
+        public void SendRequest(int stopFloor, string btnDirection)
+        {
+            var request = new Request(stopFloor, btnDirection);
+            RequestsQueue.Add(request);
+        }
+
         // Sort requests, for added efficiency
         private void SortRequestsQueue()
         {

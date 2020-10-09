@@ -21,14 +21,14 @@ namespace Commercial_ControllerCS
         public void OpenDoor()
         {
             Status = "opened";
-            WriteLine("Door has opened");
+            WriteLine("\nDoor has opened");
             Sleep(Program.SLEEP_TIME);
         }
 
         public void CloseDoor()
         {
             Status = "closed";
-            WriteLine("Door has closed");
+            WriteLine("Door has closed\n");
             Sleep(Program.SLEEP_TIME);
         }
         #endregion

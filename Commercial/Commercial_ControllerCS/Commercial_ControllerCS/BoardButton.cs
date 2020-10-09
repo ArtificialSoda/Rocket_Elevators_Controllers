@@ -13,7 +13,6 @@ namespace Commercial_ControllerCS
         #region FIELDS
         private Battery _battery;
         private int _requestedFloor;
-        private int _floor;
         private string _direction;
         private bool _isToggled;
         private bool _isEmittingLight;
@@ -49,7 +48,6 @@ namespace Commercial_ControllerCS
         {
             RequestedFloor = requestedFloor_;
             _battery = battery_;
-            _floor = Elevator.OriginFloor;
             _isToggled = false;
             _isEmittingLight = false;
         }
@@ -66,9 +64,9 @@ namespace Commercial_ControllerCS
 
             // Print the important details of the request
             if (RequestedFloor > 1)
-                WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to floor {RequestedFloor}. This person decides to call an elevator.");
+                WriteLine($"Someone is at RC (floor {Elevator.OriginFloor}) and wants to go {Direction} to floor {RequestedFloor}. This person decides to call an elevator.");
             else
-                WriteLine($"Someone is at RC (floor {_floor}) and wants to go {Direction} to B{Math.Abs(RequestedFloor)} (floor {RequestedFloor}). This person decides to call an elevator.");
+                WriteLine($"Someone is at RC (floor {Elevator.OriginFloor}) and wants to go {Direction} to B{Math.Abs(RequestedFloor)} (floor {RequestedFloor}). This person decides to call an elevator.");
             Sleep(Program.SLEEP_TIME);
 
             
@@ -81,7 +79,7 @@ namespace Commercial_ControllerCS
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
-                SendRequest(chosenElevator);
+                chosenElevator.SendRequest(Elevator.OriginFloor, Direction);
 
             // Turn off the pressed button's light
             _isToggled = false;
@@ -102,7 +100,7 @@ namespace Commercial_ControllerCS
         // Set what is the direction of the request when requesting an elevator to pick you up from RC
         private void SetDirection()
         {
-            int floorDifference =  RequestedFloor - _floor;
+            int floorDifference =  RequestedFloor - Elevator.OriginFloor;
             Direction = (floorDifference > 0) ? "up" : "down";
         }
 
@@ -157,7 +155,7 @@ namespace Commercial_ControllerCS
                     // Bonify score based on direction (highest priority)
                     if (elevator.Movement != "idle")
                     {
-               
+
                         if (floorDifference < 0 && Direction == "down" && elevator.Movement == "down")
                         {
                             // Paths are not crossed, therefore try avoiding the use of this elevator
@@ -218,13 +216,6 @@ namespace Commercial_ControllerCS
                 WriteLine($"Chosen elevator of Column {chosenColumn.ID}: Elevator {chosenElevator.ID}\n");
             }
             return chosenElevator;
-        }
-
-        // Send new request to chosen elevator 
-        private void SendRequest(Elevator elevator)
-        {
-            var request = new Request(_floor, Direction);
-            elevator.RequestsQueue.Add(request);
         }
         #endregion
     }

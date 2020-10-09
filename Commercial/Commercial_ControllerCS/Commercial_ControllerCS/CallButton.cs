@@ -79,7 +79,7 @@ namespace Commercial_ControllerCS
             if (chosenElevator == null)
                 WriteLine("All of our elevators are currently undergoing maintenance, sorry for the inconvenience.");
             else
-                SendRequest(chosenElevator);
+                chosenElevator.SendRequest(Floor, Direction);
 
             // Turn off the pressed button's light
             _isToggled = false;
@@ -202,13 +202,6 @@ namespace Commercial_ControllerCS
                 WriteLine($"Chosen elevator of Column {Column.ID}: Elevator {chosenElevator.ID}\n");
             }
             return chosenElevator;
-        }
-
-        // Send new request to chosen elevator 
-        private void SendRequest(Elevator elevator)
-        {
-            var request = new Request(Floor, Direction);
-            elevator.RequestsQueue.Add(request);
         }
         #endregion
     }
