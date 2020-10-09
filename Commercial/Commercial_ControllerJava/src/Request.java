@@ -1,12 +1,13 @@
-public class Request {
+public class Request
+{
 
     //region FIELDS
-    private int floor;
+    private Integer floor;
     private String direction;
     //endregion
 
     //region PROPERTIES - Getters
-    public int getFloor() {
+    public Integer getFloor() {
         return floor;
     }
     public String getDirection() {
@@ -15,24 +16,24 @@ public class Request {
     //endregion
 
     //region PROPERTIES - Setters
-    public void setFloor(int value)
+    public void setFloor(Integer floor)
     {
-        if (value > Battery.NumFloors || value < -(Battery.NumBasements))
+        if (floor > Battery.NumFloors || floor < -(Battery.NumBasements))
             throw new RuntimeException("The floor value provided for the request is invalid.");
         else
-            floor = value;
+            this.floor = floor;
     }
-    public void setDirection(String value)
+    public void setDirection(String direction)
     {
-        if (value.toLowerCase() != "up" && value.toLowerCase() != "down")
+        if (direction.toLowerCase() != "up" && direction.toLowerCase() != "down")
             throw new RuntimeException("The direction provided for the request is invalid. It can only be 'up' or 'down'.");
         else
-            direction = value;
+            this.direction = direction;
     }
     //endregion
 
     //region CONSTRUCTOR
-    public Request(int floor, String direction)
+    public Request(Integer floor, String direction)
     {
         setFloor(floor);
         setDirection(direction);

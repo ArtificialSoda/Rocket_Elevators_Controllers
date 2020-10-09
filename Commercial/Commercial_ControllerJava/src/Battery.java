@@ -1,7 +1,8 @@
-public class Battery {
+public class Battery
+{
 
-    public static int NumFloors;
-    public static int NumBasements;
-    public static int NumColumns;
+    public static Integer NumFloors;
+    public static Integer NumBasements;
+    public static Integer NumColumns;
 
 }

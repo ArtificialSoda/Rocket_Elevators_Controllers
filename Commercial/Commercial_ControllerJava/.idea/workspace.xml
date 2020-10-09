@@ -50,6 +50,22 @@
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="WindowStateProjectService">
+    <state x="450" y="211" key="#Setter_Template" timestamp="1602274405080">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="450" y="211" key="#Setter_Template/0.0.1714.1103@0.0.1714.1103" timestamp="1602274405080" />
+    <state x="663" y="236" key="#com.intellij.ide.util.MemberChooser" timestamp="1602279396064">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="663" y="236" key="#com.intellij.ide.util.MemberChooser/0.0.1714.1103@0.0.1714.1103" timestamp="1602279396064" />
+    <state x="0" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1602282717377">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="0" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.0.1714.1103@0.0.1714.1103" timestamp="1602282717377" />
+    <state x="588" y="299" key="#com.intellij.refactoring.typeMigration.ui.FailedConversionsDialog" timestamp="1602270469695">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="588" y="299" key="#com.intellij.refactoring.typeMigration.ui.FailedConversionsDialog/0.0.1714.1103@0.0.1714.1103" timestamp="1602270469695" />
     <state width="1364" height="266" key="GridCell.Tab.0.bottom" timestamp="1602228399739">
       <screen x="0" y="0" width="1714" height="1103" />
     </state>
@@ -66,5 +82,9 @@
       <screen x="0" y="0" width="1714" height="1103" />
     </state>
     <state width="1364" height="266" key="GridCell.Tab.0.right/0.0.1714.1103@0.0.1714.1103" timestamp="1602228399738" />
+    <state x="650" y="410" key="scopes" timestamp="1602270147467">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="650" y="410" key="scopes/0.0.1714.1103@0.0.1714.1103" timestamp="1602270147467" />
   </component>
 </project>
