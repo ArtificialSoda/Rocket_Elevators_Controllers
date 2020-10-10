@@ -39,5 +39,13 @@ To do this, we switched over to compiled programming languages this time around.
 
 Both C# and Java were great language choices for this project mainly because of their rich support for OOP and extensive set of add-on features/libraries. The implementation in Go was also a success, but it was initially more difficult to get it to work because of the language's very unique syntax compared to other popular compiled languages.
 
+#### How to interact with the scripts
+*Go*: To run the script, simply clone this repo and run the designated .exe file found inside the Go folder. If you edit code, make sure to run `go build` before re-running the executable again.
+
+*C#*: To run the script, simply clone this repo and run the .sln file found inside the C# folder. You should have already installed the Visual Studio 2019 IDE. You can also modify each individual C# class script by playing around inside the solution (.sln) file.
+
+*Java*: To run the script, simply clone this repo and run Program.java on a Java-supported IDE such as IntelliJ IDEA or Eclipse.
+
 Feel free to play around and modify the scripts!
+
  
