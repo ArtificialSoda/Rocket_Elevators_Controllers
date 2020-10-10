@@ -136,7 +136,7 @@ func (elevator *Elevator) GoToNextFloor() {
 func (elevator *Elevator) GoToOrigin() {
 
 	elevator.NextFloor = OriginFloor
-	fmt.Printf("Elevator %d of Column %d going back to RC (floor %d)...",
+	fmt.Printf("\nElevator %d of Column %d going back to RC (floor %d)...",
 		elevator.ID, elevator.Column.ID, OriginFloor)
 	elevator.GoToNextFloor()
 }
