@@ -25,14 +25,14 @@ public class ElevatorDoor
     public void openDoor()
     {
         status = "opened";
-        out.println("\nDoor has opened");
+        out.println("\n\nDoor has opened");
         Program.sleep();
     }
 
     public void closeDoor()
     {
         status = "closed";
-        out.println("\nDoor has closed");
+        out.println("Door has closed");
         Program.sleep();
     }
     //endregion

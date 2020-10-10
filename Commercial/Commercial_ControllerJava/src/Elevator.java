@@ -76,7 +76,7 @@ public class Elevator implements Comparator<Request>
         if (status.toLowerCase() != "online" && status.toLowerCase() != "offline")
             throw new RuntimeException("Invalid value for elevator's status. Can only be either 'online' or 'offline'.");
         else
-            this.movement = status;
+            this.status = status;
     }
 
     public void setMovement(String movement)
@@ -172,7 +172,7 @@ public class Elevator implements Comparator<Request>
             else if (getNextFloor() > 0)
                 out.printf("\nElevator %d of Column %d, currently at floor B%d, is about to go to floor B%d...", id, column.getId(), Math.abs(currentFloor), nextFloor);
 
-            out.println("=================================================================");
+            out.println("\n=================================================================");
 
             floorDisplay.displayFloor();
 
@@ -184,7 +184,7 @@ public class Elevator implements Comparator<Request>
                 {
                     if (currentFloor + 1 < column.getLowestFloor())
                     {
-                        out.printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n", column.getId()); ;
+                        out.printf("\n\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n", column.getId()); ;
                         currentFloor = column.getLowestFloor();
                     }
                     else
@@ -194,7 +194,7 @@ public class Elevator implements Comparator<Request>
                 {
                     if (currentFloor - 1 < column.getLowestFloor())
                     {
-                        out.printf("\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n", column.getId());
+                        out.printf("\n\n... Quickly traversing through the floors not in column %d's usual elevator range ...\n", column.getId());
                         currentFloor = OriginFloor;
                     }
                     else
@@ -203,11 +203,11 @@ public class Elevator implements Comparator<Request>
                 floorDisplay.displayFloor();
             }
 
-            out.println("=================================================================");
+            out.println("\n=================================================================");
             if (currentFloor > 0)
-                out.printf("Elevator %d of Column %d has reached its requested floor! It is now at floor %d", id, column.getId(), currentFloor);
+                out.printf("\nElevator %d of Column %d has reached its requested floor! It is now at floor %d.", id, column.getId(), currentFloor);
             else
-                out.printf("Elevator %d of Column %d has reached its requested floor! It is now at floor B%d", id, column.getId(), currentFloor);
+                out.printf("\nElevator %d of Column %d has reached its requested floor! It is now at floor B%d.", id, column.getId(), Math.abs(currentFloor));
         }
     }
 
@@ -215,7 +215,7 @@ public class Elevator implements Comparator<Request>
     public void goToOrigin()
     {
         this.nextFloor = OriginFloor;
-        out.printf("Elevator %d of Column %d going back to RC (floor %d)...", this.id, this.column.getId(), OriginFloor);
+        out.printf("\nElevator %d of Column %d going back to RC (floor %d)...", this.id, this.column.getId(), OriginFloor);
         goToNextFloor();
     }
 
@@ -242,12 +242,20 @@ public class Elevator implements Comparator<Request>
     // Sort requests, for added efficiency
     private void sortRequestsQueue()
     {
+        // Store the requests that might need to be moved or removed for efficiency purposes
+        var requestsToDiscard = new ArrayList<Request>();
+
         // Remove any requests which are useless i.e. requests that are already on their desired floor
         for (var req : this.requestsQueue)
         {
             if (req.getFloor().equals(this.currentFloor))
-                this.requestsQueue.remove(req);
+                requestsToDiscard.add(req);
         }
+        for (var req : requestsToDiscard)
+        {
+            this.requestsQueue.remove(req);
+        }
+        requestsToDiscard.clear();
 
         // Decide if elevator is going up, down or is staying idle
         this.setMovement();
@@ -263,13 +271,15 @@ public class Elevator implements Comparator<Request>
                 // Push any request to the end of the queue that would require a direction change
                 for (var req : this.requestsQueue)
                 {
-
                     if (req.getDirection() != this.movement || req.getFloor() < this.currentFloor)
-                    {
-                        this.requestsQueue.remove(req);
-                        this.requestsQueue.add(req);
-                    }
+                        requestsToDiscard.add(req);
                 }
+                for (var req : requestsToDiscard)
+                {
+                    this.requestsQueue.remove(req);
+                    this.requestsQueue.add(req);
+                }
+                requestsToDiscard.clear();
             }
 
             else
@@ -278,15 +288,18 @@ public class Elevator implements Comparator<Request>
                 Collections.reverse(this.requestsQueue);
 
                 // Push any request to the end of the queue that would require a direction change
+                requestsToDiscard = new ArrayList<Request>();
                 for (var req : this.requestsQueue)
                 {
-
                     if (req.getDirection() != this.movement || req.getFloor() > this.currentFloor)
-                    {
-                        this.requestsQueue.remove(req);
-                        this.requestsQueue.add(req);
-                    }
+                        requestsToDiscard.add(req);
                 }
+                for (var req : requestsToDiscard)
+                {
+                    this.requestsQueue.remove(req);
+                    this.requestsQueue.add(req);
+                }
+                requestsToDiscard.clear();
             }
 
         }
@@ -342,6 +355,7 @@ public class Elevator implements Comparator<Request>
     //endregion
 
     //region OVERRIDES
+    // Sorts the elevator's requests queue by their floor
     @Override
     public int compare(Request o1, Request o2) {
         return o1.getFloor().compareTo(o2.getFloor());

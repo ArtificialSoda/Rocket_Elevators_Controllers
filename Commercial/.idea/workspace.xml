@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="172512d8-2925-4755-8809-72d43b3886ed" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ProjectId" id="1idBJvBPaued2uIRLPPswB9s70d" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="RunManager">
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="com.company.Main" />
+      <module name="Commercial" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="WindowStateProjectService">
+    <state x="637" y="293" key="FileChooserDialogImpl" timestamp="1602227689651">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="637" y="293" key="FileChooserDialogImpl/0.0.1714.1103@0.0.1714.1103" timestamp="1602227689651" />
+    <state x="518" y="172" key="new project wizard" timestamp="1602227908203">
+      <screen x="0" y="0" width="1714" height="1103" />
+    </state>
+    <state x="518" y="172" key="new project wizard/0.0.1714.1103@0.0.1714.1103" timestamp="1602227908203" />
+  </component>
+</project>

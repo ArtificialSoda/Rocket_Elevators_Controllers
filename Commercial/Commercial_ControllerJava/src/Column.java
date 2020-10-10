@@ -98,7 +98,7 @@ public class Column
 
     //region METHODS
     // Initialize the column's collection of elevators
-    public void CreateElevatorList()
+    public void createElevatorList()
     {
         for (var elevatorID = 1; elevatorID <= NumElevators; elevatorID++)
         {
@@ -108,7 +108,7 @@ public class Column
     }
 
     // Initialize all the call buttons, on each floor
-    public void CreateCallButtons()
+    public void createCallButtons()
     {
         for (int numFloor = this.lowestFloor; numFloor <= this.highestFloor; numFloor++)
         {
@@ -121,9 +121,8 @@ public class Column
     }
 
     // Request an elevator to current location (if current location is not RC)
-    public void RequestElevator(Integer floorNumber)
+    public void requestElevator(Integer floorNumber)
     {
-
         CallButton callBtnToPress = null;
         for (var btn : this.callButtonsList)
         {

@@ -20,10 +20,10 @@ public class FloorDisplay
 
         if (elevator.getCurrentFloor() > 0)
         {
-            out.printf("... Elevator %d of column %d's current floor mid-travel: %d ...", elevator.getId(), elevator.getColumn().getId(), elevator.getCurrentFloor());
+            out.printf("\n... Elevator %d of column %d's current floor mid-travel: %d ...", elevator.getId(), elevator.getColumn().getId(), elevator.getCurrentFloor());
         }
         else if (elevator.getCurrentFloor() < 0)
-            out.printf("... Elevator %d of column %d's current floor mid-travel: B%d ...", elevator.getId(), elevator.getColumn().getId(), Math.abs(elevator.getCurrentFloor()));
+            out.printf("\n... Elevator %d of column %d's current floor mid-travel: B%d ...", elevator.getId(), elevator.getColumn().getId(), Math.abs(elevator.getCurrentFloor()));
 
     }
     //endregion

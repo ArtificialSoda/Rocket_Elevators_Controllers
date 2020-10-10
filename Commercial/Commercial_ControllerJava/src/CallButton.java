@@ -3,6 +3,10 @@ import java.util.List;
 
 import static java.lang.System.out;
 
+/**
+ *  Elevator call button - one on each floor, on each column, for each elevator of that column.
+ *  Brings you to the ground floor (RC).
+ */
 public class CallButton
 {
     //region FIELDS
@@ -14,7 +18,6 @@ public class CallButton
     //endregion
 
     //region PROPERTIES - Getters
-
     public Integer getFloor()
     {
         return floor;
@@ -72,7 +75,7 @@ public class CallButton
     {
         this.setDirection();
 
-        out.println("\nELEVATOR REQUEST - FROM A CALL BUTTON");
+        out.println("\n\nELEVATOR REQUEST - FROM A CALL BUTTON");
         Program.sleep();
 
         // Print the important details of the request
@@ -204,7 +207,7 @@ public class CallButton
                     chosenElevator = this.column.getElevatorList().get(i);
                 }
             }
-            out.printf("Chosen elevator of Column %d: Elevator %d\n", column.getId(), chosenElevator.getId());
+            out.printf("\nChosen elevator of Column %d: Elevator %d", column.getId(), chosenElevator.getId());
         }
         return chosenElevator;
     }
