@@ -168,7 +168,7 @@ public class Battery
     }
 
     // Assigns a column and elevator to use when making a request from RC via the board buttons
-    public void AssignElevator(int requestedFloor)
+    public void assignElevator(int requestedFloor)
     {
         BoardButton boardBtnToPress = null;
         for (var btn : this.boardButtonList)

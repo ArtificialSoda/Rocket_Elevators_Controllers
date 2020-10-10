@@ -64,7 +64,7 @@ public class Program {
         column.getElevatorList().get(3).changeProperties(15, 2);
         column.getElevatorList().get(4).changeProperties(6, 1);
 
-        battery.AssignElevator(20);
+        battery.assignElevator(20);
         sleep();
     }
 
@@ -81,7 +81,7 @@ public class Program {
         column.getElevatorList().get(3).changeProperties(40, 24);
         column.getElevatorList().get(4).changeProperties(39, 1);
 
-        battery.AssignElevator(36);
+        battery.assignElevator(36);
         sleep();
     }
 
