@@ -44,7 +44,7 @@ Both C# and Java were great language choices for this project mainly because of 
 
 *C#*: To run the script, simply clone this repo and run the .sln file found inside the C# folder. You should have already installed the Visual Studio 2019 IDE. You can also modify each individual C# class script by playing around inside the solution (.sln) file.
 
-*Java*: To run the script, simply clone this repo and run Program.java on a Java-supported IDE such as IntelliJ IDEA or Eclipse.
+*Java*: To run the script, simply clone this repo and run Program.java (inside the designated Java folder of this repo) on a Java-supported IDE such as IntelliJ IDEA or Eclipse.
 
 Feel free to play around and modify the scripts!
 
