@@ -137,10 +137,7 @@ namespace Commercial_ControllerCS
 
                 // Prevents use of any offline/under-maintenance elevators
                 if (elevator.Status != "online")
-                {
                     score = -1;
-                    elevatorScores.Add(score);
-                }
                 else
                 {
                     // Bonify score based on floor difference
@@ -188,10 +185,9 @@ namespace Commercial_ControllerCS
                         score += 1000;
                     else if (elevator.RequestsQueue.Count <= 7)
                         score += 250;
-
-                    // Send total score of elevator to the scores list
-                    elevatorScores.Add(score);
                 }
+                // Send total score of elevator to the scores list
+                elevatorScores.Add(score);
             }
 
             // Get value of highest score
