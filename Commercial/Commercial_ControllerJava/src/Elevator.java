@@ -348,10 +348,6 @@ public class Elevator implements Comparator<Request>
             this.door.openDoor();
         }
     }
-
-
-
-
     //endregion
 
     //region OVERRIDES
@@ -361,6 +357,4 @@ public class Elevator implements Comparator<Request>
         return o1.getFloor().compareTo(o2.getFloor());
     }
     //endregion
-
-
 }

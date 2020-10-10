@@ -31,13 +31,14 @@ func Run(battery Battery) {
 	for input.Scan() {
 
 		if input.Text() == "1" {
-			Scenario1(battery, battery.ColumnList[1]) // Covers B6 to B1 + RC
+			Scenario1(battery, battery.ColumnList[1]) // Covers 02 to 20 + RC
 		} else if input.Text() == "2" {
-			Scenario2(battery, battery.ColumnList[2]) // Covers 02 to 20 + RC
+			Scenario3(battery.ColumnList[2]) // Covers 21 to 40 + RC
 		} else if input.Text() == "3" {
-			Scenario3(battery.ColumnList[3]) // Covers 21 to 40 + RC
+			Scenario4(battery.ColumnList[3]) // Covers 41 to 60 + RC
 		} else if input.Text() == "4" {
-			Scenario4(battery.ColumnList[0]) // Covers 41 to 60 + RC
+			Scenario4(battery.ColumnList[0]) // Covers B6 to B1 + RC
+
 		} else {
 			fmt.Println("\nHello! Choose which scenario you'd like to emulate [1, 2, 3, 4]: ")
 			continue

@@ -28,16 +28,16 @@ public class Program {
 
             String chosenScenario = input.nextLine();
             if (chosenScenario.equals("1"))
-                Scenario1(battery, battery.getColumnList().get(1));
+                Scenario1(battery, battery.getColumnList().get(1)); // Covers 02 to 20 + RC
 
             else if (chosenScenario.equals("2"))
-                Scenario2(battery, battery.getColumnList().get(2));
+                Scenario2(battery, battery.getColumnList().get(2)); // Covers 21 to 40 + RC
 
             else if (chosenScenario.equals("3"))
-                Scenario3(battery.getColumnList().get(3));
+                Scenario3(battery.getColumnList().get(3)); // Covers 41 to 60 + RC
 
             else if (chosenScenario.equals("4"))
-                Scenario4(battery.getColumnList().get(0));
+                Scenario4(battery.getColumnList().get(0)); // Covers B6 to B1 + RC
 
             else
                 continue;
